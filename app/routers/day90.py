@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import re
 from collections import Counter
 from copy import deepcopy
@@ -971,11 +972,203 @@ def _auto_profile_and_cases(profile: dict | None = None) -> tuple[dict, list[dic
     return auto_profile, cases
 
 
+def _route_count_map(profile: dict) -> dict:
+    counts = profile.get("route_counts") if isinstance(profile.get("route_counts"), dict) else {}
+    return {route: int(counts.get(route, 0) or 0) for route in ["GREEN", "AMBER", "RED", "CONFIDENTIAL", "DATA_QUALITY"]}
+
+
+def _operator_scope_cases(cases: list[dict], employee_id: str | None = None) -> list[dict]:
+    if not employee_id:
+        return cases
+    return [case for case in cases if str(case.get("employee_id", "")).upper() == employee_id]
+
+
+def _sample_case_outputs(cases: list[dict], limit: int = 3) -> list[dict]:
+    return [
+        {
+            "case_id": case.get("id"),
+            "employee_id": case.get("employee_id"),
+            "route": case.get("route"),
+            "status": case.get("status"),
+            "reason": case.get("reason"),
+            "recommended_action": case.get("recommended_action"),
+        }
+        for case in cases[:limit]
+    ]
+
+
+def _candidate_signal_total(profile: dict, signal_name: str, employee_id: str | None = None) -> int:
+    total = 0
+    for case in profile.get("candidate_cases", []):
+        if employee_id and str(case.get("employee_id", "")).upper() != employee_id:
+            continue
+        signals = case.get("signals") if isinstance(case.get("signals"), dict) else {}
+        total += int(signals.get(signal_name, 0) or 0)
+    return total
+
+
+def _operator_business_output(operator_key: str, profile: dict, cases: list[dict], employee_id: str | None = None) -> dict:
+    """Return grounded Operator output when the Auto stream has no structured result body."""
+
+    source = profile.get("source") if isinstance(profile.get("source"), dict) else {}
+    counts = profile.get("counts") if isinstance(profile.get("counts"), dict) else {}
+    quality = profile.get("quality") if isinstance(profile.get("quality"), dict) else {}
+    provisioning = profile.get("provisioning") if isinstance(profile.get("provisioning"), dict) else {}
+    engagement = profile.get("engagement") if isinstance(profile.get("engagement"), dict) else {}
+    compliance = profile.get("compliance") if isinstance(profile.get("compliance"), dict) else {}
+    payroll = profile.get("payroll") if isinstance(profile.get("payroll"), dict) else {}
+    learning = profile.get("learning") if isinstance(profile.get("learning"), dict) else {}
+    dependencies = profile.get("dependencies") if isinstance(profile.get("dependencies"), dict) else {}
+    policy_snapshot = profile.get("policy_snapshot") if isinstance(profile.get("policy_snapshot"), dict) else {}
+    route_counts = _route_count_map(profile)
+    scoped_cases = _operator_scope_cases(cases, employee_id)
+    scope_label = employee_id or "all"
+
+    common = {
+        "output_contract": "day90-operator-output-v1",
+        "source": "live_day90_profile",
+        "scope_type": "employee" if employee_id else "all",
+        "scope_value": scope_label,
+        "source_record": {
+            "kind": source.get("kind"),
+            "as_of_date": source.get("as_of_date"),
+        },
+        "workbench_cases_considered": len(scoped_cases),
+        "sample_cases": _sample_case_outputs(scoped_cases),
+    }
+
+    if operator_key == "data_quality":
+        data_quality_cases = [case for case in scoped_cases if case.get("route") == "DATA_QUALITY"]
+        loaded_tables = sum(1 for rows in counts.values() if int(rows or 0) > 0)
+        return {
+            **common,
+            "summary": (
+                f"Validated {counts.get('workers', 0)} worker records across {loaded_tables} loaded operational tables; "
+                f"{len(data_quality_cases)} Workbench case(s) remain stopped for source-data correction."
+            ),
+            "metrics": {
+                "workers_checked": counts.get("workers", 0),
+                "loaded_operational_tables": loaded_tables,
+                "missing_manager_refs": quality.get("missing_manager_refs", 0),
+                "overdue_incomplete_tasks": quality.get("overdue_incomplete_tasks", 0),
+                "completed_after_due": quality.get("completed_after_due", 0),
+                "data_quality_route_count": route_counts["DATA_QUALITY"],
+            },
+            "decision": "Data quality exceptions stay quarantined; no Slack or Asana action is created.",
+        }
+
+    if operator_key == "onboarding":
+        impacted_cases = [
+            case
+            for case in scoped_cases
+            if any(
+                signal in str(case.get("reason", "")).lower()
+                for signal in ["onboarding", "provisioning", "day-one", "blocked"]
+            )
+        ]
+        return {
+            **common,
+            "summary": (
+                f"Reviewed {counts.get('tasks', 0)} onboarding tasks and {counts.get('provisioning', 0)} provisioning events; "
+                f"{provisioning.get('blocked', 0)} provisioning event(s) are blocked."
+            ),
+            "metrics": {
+                "onboarding_tasks": counts.get("tasks", 0),
+                "blocked_provisioning": provisioning.get("blocked", 0),
+                "requested_provisioning": provisioning.get("requested", 0),
+                "open_day_one_dependencies": dependencies.get("day_one_blockers_open", 0),
+                "overdue_task_signals": _candidate_signal_total(profile, "overdue_tasks", employee_id),
+                "impacted_workbench_cases": len(impacted_cases),
+            },
+            "top_blockers": [item[0] for item in provisioning.get("blocked_by_resource", [])[:3]],
+            "decision": "Blocked or overdue onboarding evidence is routed to Workbench before intervention.",
+        }
+
+    if operator_key == "engagement":
+        return {
+            **common,
+            "summary": (
+                f"Reviewed {counts.get('engagement', 0)} engagement records; "
+                f"{engagement.get('confidential', 0)} confidential case(s) are isolated and {engagement.get('low_nonconf', 0)} low non-confidential signal(s) remain eligible for governed review."
+            ),
+            "metrics": {
+                "engagement_records": counts.get("engagement", 0),
+                "low_non_confidential_signals": engagement.get("low_nonconf", 0),
+                "nonresponses": engagement.get("nonresponse", 0),
+                "manager_slow_ge_5d": engagement.get("manager_slow_ge_5d", 0),
+                "confidential_cases": engagement.get("confidential", 0),
+                "confidential_route_count": route_counts["CONFIDENTIAL"],
+            },
+            "decision": "Confidential disclosures are restricted; non-confidential engagement risk can move to policy evaluation.",
+        }
+
+    if operator_key == "risk_policy":
+        return {
+            **common,
+            "summary": (
+                f"Applied policy profile {policy_snapshot.get('profile', POLICY_PROFILE)} v{policy_snapshot.get('version', POLICY_VERSION)}; "
+                f"{route_counts['RED']} Red, {route_counts['AMBER']} Amber, {route_counts['CONFIDENTIAL']} Confidential, and {route_counts['DATA_QUALITY']} Data Quality case(s) are routed."
+            ),
+            "metrics": {
+                "active_policy_count": policy_snapshot.get("active_policy_count", len(POLICIES)),
+                "route_counts": route_counts,
+                "missing_compliance": compliance.get("missing", 0),
+                "overdue_compliance": compliance.get("overdue", 0),
+                "payroll_errors": payroll.get("errors", 0),
+                "learning_incomplete": learning.get("incomplete", 0),
+            },
+            "decision": "Policy gates are evaluated before any action; non-green routes remain approval-gated.",
+        }
+
+    if operator_key == "intervention":
+        eligible_cases = [case for case in scoped_cases if case.get("route") in {"AMBER", "RED"}]
+        held_cases = [case for case in scoped_cases if case.get("route") in {"CONFIDENTIAL", "DATA_QUALITY"}]
+        return {
+            **common,
+            "summary": (
+                f"Prepared {len(eligible_cases)} approval-eligible intervention case(s); "
+                f"{len(held_cases)} case(s) are held by confidentiality or data-quality gates."
+            ),
+            "metrics": {
+                "approval_eligible_cases": len(eligible_cases),
+                "held_cases": len(held_cases),
+                "external_actions_created_by_trigger": 0,
+                "slack_channel": os.getenv("SUPERVITY_SLACK_CHANNEL_NAME", "day90-test"),
+                "asana_project": os.getenv("SUPERVITY_ASANA_PROJECT_NAME", "D90TEST - Day90 Guardian"),
+            },
+            "decision": "No Slack or Asana artifact is created until a human approves a Workbench case.",
+        }
+
+    return {
+        **common,
+        "summary": "Operator run completed, but no operator-specific output builder is registered.",
+        "metrics": {"route_counts": route_counts},
+        "decision": "Workbench approval remains required.",
+    }
+
+
+def _attach_operator_business_output(receipt: dict, operator_key: str, profile: dict, cases: list[dict], employee_id: str | None = None) -> dict:
+    enriched = deepcopy(receipt)
+    if enriched.get("operator_output") not in (None, ""):
+        enriched["operator_output_source"] = "supervity_stream"
+        enriched["supervity_output_returned"] = True
+        return enriched
+
+    enriched["operator_output"] = _operator_business_output(operator_key, profile, cases, employee_id)
+    enriched["operator_output_source"] = "command_center_profile"
+    enriched["supervity_output_returned"] = False
+    enriched["output_note"] = (
+        "Supervity returned run status/events but no structured result body; "
+        "AI Manager is showing a grounded Command Center output computed from live Day90 records."
+    )
+    return enriched
+
+
 def _trigger_operator_receipt(operator_key: str, profile: dict, cases: list[dict], run_tag: str, employee_id: str | None = None) -> dict:
     operator = OPERATOR_REGISTRY.get(operator_key)
     if not operator:
         raise HTTPException(status_code=404, detail="Day90 Operator not found")
-    return execute_supervity_operator(
+    receipt = execute_supervity_operator(
         profile,
         cases,
         run_tag,
@@ -983,6 +1176,8 @@ def _trigger_operator_receipt(operator_key: str, profile: dict, cases: list[dict
         operator["name"],
         employee_id=employee_id,
     )
+    return _attach_operator_business_output(receipt, operator_key, profile, cases, employee_id)
+
 
 
 @router.post("/operators/{operator_key}/trigger")

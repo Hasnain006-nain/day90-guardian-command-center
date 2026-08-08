@@ -31,6 +31,9 @@ interface OperatorReceipt {
   events_observed?: string[]
   input_fields_sent?: string[]
   operator_output?: unknown
+  operator_output_source?: string
+  supervity_output_returned?: boolean
+  output_note?: string
   action_gate_status?: string
   detail?: string
 }
@@ -109,11 +112,15 @@ function formatOperatorReceipt(receipt: OperatorReceipt) {
   const inputLine = receipt.input_fields_sent?.length ? `\n- Inputs sent: \`${receipt.input_fields_sent.join(', ')}\`` : ''
   const output = compactOutput(receipt.operator_output)
   const outputLine = output ? `\n- Output: ${output}` : '\n- Output: not returned by workflow'
+  const outputSourceLine = receipt.operator_output_source
+    ? `\n- Output source: **${receipt.operator_output_source.replaceAll('_', ' ')}**`
+    : ''
+  const outputNoteLine = receipt.output_note ? `\n- Output note: ${receipt.output_note}` : ''
   const gateLine = receipt.action_gate_status ? `\n- Workbench gate: **${receipt.action_gate_status.replaceAll('_', ' ')}**` : ''
   const detailLine = receipt.detail ? `\n\n${receipt.detail}` : ''
   return (
     `- Operator: **${receipt.operator_name ?? receipt.operator_key ?? 'Day90 Operator'}**\n` +
-    `- Operator status: **${receipt.status ?? 'not reported'}**${runIdLine}${workflowIdLine}${httpStatusLine}${streamEventsLine}${inputLine}${outputLine}${gateLine}${detailLine}`
+    `- Operator status: **${receipt.status ?? 'not reported'}**${runIdLine}${workflowIdLine}${httpStatusLine}${streamEventsLine}${inputLine}${outputLine}${outputSourceLine}${outputNoteLine}${gateLine}${detailLine}`
   )
 }
 

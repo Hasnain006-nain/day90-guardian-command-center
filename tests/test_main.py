@@ -855,6 +855,9 @@ async def test_operator_trigger_calls_individual_workflow_with_employee_scope(mo
         assert result["operator"]["workflow_id"] == day90_integrations.DEFAULT_SUPERVITY_OPERATOR_WORKFLOW_IDS["engagement"]
         assert result["operator"]["run_id"] == "RUN-ENG"
         assert result["operator"]["operator_output"] == {"route": "CONFIDENTIAL", "public_action_created": False}
+        assert result["operator"]["operator_output_source"] == "supervity_stream"
+        assert result["operator"]["supervity_output_returned"] is True
+        assert "output_note" not in result["operator"]
         assert len(requests) == 1
         assert requests[0]["files"]["workflowId"] == (
             None,
@@ -871,6 +874,102 @@ async def test_operator_trigger_calls_individual_workflow_with_employee_scope(mo
         assert request_inputs["policy_profile"] == "hr-default"
         assert "policy_snapshot" not in request_inputs
         assert "operator_evidence_snapshot" not in request_inputs
+    finally:
+        day90.AUDIT_TRAIL[:] = audit_before
+
+
+async def test_operator_trigger_returns_grounded_output_when_supervity_has_no_result_body(monkeypatch):
+    monkeypatch.setenv("SUPERVITY_WORKFLOW_EXECUTE_URL", "https://workflow.example/api/v1/workflow-runs/execute/stream")
+    monkeypatch.setenv("SUPERVITY_API_KEY", "test-supervity-token")
+    monkeypatch.setenv("DAY90_SUPERVITY_TRIGGER_ENABLED", "true")
+    monkeypatch.setattr(
+        day90,
+        "_profile",
+        lambda: {
+            "source": {"available": True, "kind": "supabase", "as_of_date": "2026-08-03"},
+            "counts": {
+                "workers": 3,
+                "cohorts": 1,
+                "tasks": 8,
+                "provisioning": 5,
+                "engagement": 4,
+                "managers": 2,
+                "locations": 1,
+                "compliance": 3,
+                "payroll": 3,
+                "learning": 3,
+                "attrition_history": 3,
+                "cross_team_dependencies": 2,
+            },
+            "quality": {
+                "missing_manager_refs": 1,
+                "overdue_incomplete_tasks": 2,
+                "completed_after_due": 1,
+            },
+            "provisioning": {"blocked": 1, "requested": 2, "blocked_by_resource": [("Badge", 1)]},
+            "engagement": {"confidential": 0, "low_nonconf": 1, "nonresponse": 1, "manager_slow_ge_5d": 1},
+            "compliance": {"missing": 0, "overdue": 0},
+            "payroll": {"errors": 0},
+            "learning": {"incomplete": 1},
+            "dependencies": {"day_one_blockers_open": 0},
+            "route_counts": {"GREEN": 2, "AMBER": 0, "RED": 0, "CONFIDENTIAL": 0, "DATA_QUALITY": 1},
+            "candidate_cases": [
+                {
+                    "employee_id": "EMP9003",
+                    "route": "DATA_QUALITY",
+                    "score": 40,
+                    "signals": {"missing_manager": 1, "overdue_tasks": 2},
+                }
+            ],
+            "policy_snapshot": {
+                "profile": "hr-default",
+                "version": 1,
+                "active_policy_count": 4,
+                "policies": [],
+            },
+        },
+    )
+    monkeypatch.setattr(day90, "all_required_live_integrations_ready", lambda _source: True)
+
+    class NoOutputResponse:
+        status_code = 200
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def iter_lines(self):
+            return iter(
+                [
+                    "event: workflow-run",
+                    'data: {"content":{"workflowRunId":"RUN-DQ","status":"running"}}',
+                    "",
+                    "event: result",
+                    'data: {"success":true,"workflowRun":{"id":"RUN-DQ","status":"completed"}}',
+                    "",
+                ]
+            )
+
+    monkeypatch.setattr(day90_integrations.httpx, "stream", lambda *_args, **_kwargs: NoOutputResponse())
+
+    audit_before = deepcopy(day90.AUDIT_TRAIL)
+    try:
+        result = day90.trigger_operator("data_quality", day90.OperatorTriggerRequest())
+
+        output = result["operator"]["operator_output"]
+        assert result["operator"]["run_id"] == "RUN-DQ"
+        assert result["operator"]["operator_output_source"] == "command_center_profile"
+        assert result["operator"]["supervity_output_returned"] is False
+        assert "Supervity returned run status/events but no structured result body" in result["operator"]["output_note"]
+        assert output["output_contract"] == "day90-operator-output-v1"
+        assert output["source"] == "live_day90_profile"
+        assert "Validated 3 worker records" in output["summary"]
+        assert output["metrics"]["missing_manager_refs"] == 1
+        assert output["metrics"]["data_quality_route_count"] == 1
+        assert output["sample_cases"][0]["employee_id"] == "EMP9003"
+        assert output["decision"].startswith("Data quality exceptions stay quarantined")
     finally:
         day90.AUDIT_TRAIL[:] = audit_before
 
