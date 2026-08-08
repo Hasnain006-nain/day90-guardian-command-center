@@ -203,6 +203,8 @@ async def test_ai_manager_help_shows_supported_command_menu(monkeypatch):
 
     assert "guided Day90 command-center assistant" in result["response"]
     assert "Run Guardian Review" in result["response"]
+    assert "Retry Onboarding Operator" in result["response"]
+    assert "Retrigger Data Quality Operator" in result["response"]
     assert "Workbench" in result["response"]
     assert "Explain policy gates" in result["response"]
     assert "Iâ" not in result["response"]
@@ -448,7 +450,7 @@ async def test_manual_trigger_stages_actions_behind_workbench(monkeypatch):
     )
     monkeypatch.setattr(
         day90_integrations.httpx,
-        "post",
+        "stream",
         lambda *_args, **_kwargs: pytest.fail("Supervity execution should require an explicit enable flag"),
     )
 
@@ -687,6 +689,8 @@ async def test_manual_trigger_can_call_supervity_with_approval_gated_payload(mon
         assert result["orchestrator"]["policy_snapshot"]["active_policy_count"] == 4
         assert result["orchestrator"]["operator_evidence_snapshot_sent"] is True
         assert result["orchestrator"]["operator_evidence_packet_count"] == 1
+        assert "operator_summary" not in result
+        assert "operators" not in result
         assert result["status"] == "live_orchestration_started"
         assert len(requests) == 1
         assert requests[0]["method"] == "POST"
@@ -774,6 +778,101 @@ async def test_supervity_connector_sends_active_org_only_when_configured(monkeyp
     assert result["run_id"] == "RUN-ORG"
     assert result["workflow_id"] == day90_integrations.DEFAULT_SUPERVITY_WORKFLOW_ID
     assert requests[0]["headers"]["x-active-org"] == "alpha"
+
+
+async def test_operator_trigger_calls_individual_workflow_with_employee_scope(monkeypatch):
+    monkeypatch.setenv("SUPERVITY_WORKFLOW_EXECUTE_URL", "https://workflow.example/api/v1/workflow-runs/execute/stream")
+    monkeypatch.setenv("SUPERVITY_API_KEY", "test-supervity-token")
+    monkeypatch.setenv("DAY90_SUPERVITY_TRIGGER_ENABLED", "true")
+    monkeypatch.setattr(
+        day90,
+        "_profile",
+        lambda: {
+            "source": {"available": True},
+            "route_counts": {"GREEN": 1, "AMBER": 1, "RED": 0, "CONFIDENTIAL": 0, "DATA_QUALITY": 0},
+            "policy_snapshot": {
+                "profile": "hr-default",
+                "version": 1,
+                "active_policy_count": 4,
+                "policies": [],
+            },
+        },
+    )
+    monkeypatch.setattr(
+        day90,
+        "_workbench_cases_from_profile",
+        lambda _profile: [
+            {
+                "id": "case-1",
+                "case_key": "R2|EMP7041|DAY90|hr-default|1",
+                "route": "AMBER",
+                "status": "pending_review",
+                "employee_id": "EMP7041",
+            }
+        ],
+    )
+    monkeypatch.setattr(day90, "all_required_live_integrations_ready", lambda _source: True)
+
+    requests = []
+
+    class OperatorResponse:
+        status_code = 200
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def iter_lines(self):
+            return iter(
+                [
+                    "event: workflow-run",
+                    'data: {"content":{"workflowRunId":"RUN-ENG","status":"running"}}',
+                    "",
+                    "event: result",
+                    'data: {"success":true,"workflowRun":{"id":"RUN-ENG","status":"completed"},"output":{"route":"CONFIDENTIAL","public_action_created":false}}',
+                    "",
+                ]
+            )
+
+    def fake_stream(method, url, **kwargs):
+        requests.append({"method": method, "url": url, **kwargs})
+        return OperatorResponse()
+
+    monkeypatch.setattr(day90_integrations.httpx, "stream", fake_stream)
+
+    audit_before = deepcopy(day90.AUDIT_TRAIL)
+    try:
+        result = day90.trigger_operator(
+            "engagement",
+            day90.OperatorTriggerRequest(employee_id="emp7041"),
+        )
+
+        assert result["external_actions"] == []
+        assert result["operator"]["operator_key"] == "engagement"
+        assert result["operator"]["operator_name"] == "Engagement and Confidentiality Guard Operator"
+        assert result["operator"]["workflow_id"] == day90_integrations.DEFAULT_SUPERVITY_OPERATOR_WORKFLOW_IDS["engagement"]
+        assert result["operator"]["run_id"] == "RUN-ENG"
+        assert result["operator"]["operator_output"] == {"route": "CONFIDENTIAL", "public_action_created": False}
+        assert len(requests) == 1
+        assert requests[0]["files"]["workflowId"] == (
+            None,
+            day90_integrations.DEFAULT_SUPERVITY_OPERATOR_WORKFLOW_IDS["engagement"],
+        )
+        request_inputs = {
+            key.removeprefix("inputs[").removesuffix("]"): value[1]
+            for key, value in requests[0]["files"].items()
+            if key.startswith("inputs[")
+        }
+        assert request_inputs["scope_type"] == "employee"
+        assert request_inputs["scope_value"] == "EMP7041"
+        assert request_inputs["batch_id"] == "R2-BATCH-20260803"
+        assert request_inputs["policy_profile"] == "hr-default"
+        assert "policy_snapshot" not in request_inputs
+        assert "operator_evidence_snapshot" not in request_inputs
+    finally:
+        day90.AUDIT_TRAIL[:] = audit_before
 
 
 async def test_supervity_policy_snapshot_input_can_be_disabled(monkeypatch):

@@ -143,7 +143,8 @@ def _capability_menu(page: str, context: dict) -> str:
     return (
         "I am a guided Day90 command-center assistant, not a general free-text LLM. "
         "Use one of these supported commands and I will answer from the current Day90 data.\n\n"
-        "- `Run Guardian Review`: start the approval-gated Supervity Guardian run.\n"
+        "- `Run Guardian Review` or `Run Orchestrator`: start the approval-gated Supervity Orchestrator workflow.\n"
+        "- `Run Engagement Operator for EMP7041`, `Retry Onboarding Operator`, `Retrigger Data Quality Operator`, `Run Risk Policy Operator`, or `Run Intervention Operator`: trigger or retrigger one individual Supervity Operator workflow.\n"
         "- `Show readiness proof`: explain the live operating proof path.\n"
         "- `Summarize Workbench`: show queue counts, route mix, and sample cases.\n"
         "- `Show Red cases`, `Show Amber cases`, `Show Confidential cases`, or `Show Data Quality cases`: filter Workbench by route.\n"

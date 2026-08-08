@@ -12,6 +12,7 @@ from pydantic import BaseModel
 from app.services.day90_integrations import (
     all_required_live_integrations_ready,
     create_masked_reviewer_actions,
+    execute_supervity_operator,
     execute_supervity_orchestrator,
     integration_registry,
     live_integration_summary,
@@ -28,6 +29,7 @@ def utc_now() -> str:
 
 OPERATORS = [
     {
+        "key": "data_quality",
         "name": "HR Data Quality and Lifecycle Operator",
         "role": "Validates worker cohort, lifecycle stage, manager links, location, and data completeness before any risk decision runs.",
         "mode": "sequential gate",
@@ -35,6 +37,7 @@ OPERATORS = [
         "last_result": "150 workers checked; 3 manager-reference exceptions isolated.",
     },
     {
+        "key": "onboarding",
         "name": "Onboarding Task and Access Reconciliation Operator",
         "role": "Compares onboarding tasks with provisioning evidence so only trustworthy access/task recoveries move forward.",
         "mode": "parallel fan-out",
@@ -42,6 +45,7 @@ OPERATORS = [
         "last_result": "75 blocked provisioning events; badge and system access are the top bottlenecks.",
     },
     {
+        "key": "engagement",
         "name": "Engagement and Confidentiality Guard Operator",
         "role": "Reads pulse/non-response signals and separates confidential disclosures from normal cohort reporting.",
         "mode": "parallel fan-out",
@@ -49,6 +53,7 @@ OPERATORS = [
         "last_result": "38 low non-confidential engagement signals; 4 confidential cases restricted.",
     },
     {
+        "key": "risk_policy",
         "name": "Retention Risk and Policy Evaluation Operator",
         "role": "Applies editable Day90 policies to merged evidence and assigns Green, Amber, Red, Confidential, or Data Quality routes.",
         "mode": "fan-in policy gate",
@@ -56,6 +61,7 @@ OPERATORS = [
         "last_result": "Policy v1 evaluated; Amber manager-nudge and Red compliance routes active.",
     },
     {
+        "key": "intervention",
         "name": "Intervention Execution and Outcome Operator",
         "role": "Creates only safe or approved Slack/Asana interventions, verifies evidence, and records outcome state.",
         "mode": "approved action",
@@ -63,6 +69,9 @@ OPERATORS = [
         "last_result": "Slack and Asana proof generated for EMP7002 Amber review.",
     },
 ]
+
+OPERATOR_REGISTRY = {operator["key"]: operator for operator in OPERATORS}
+OPERATOR_RUN_ORDER = ["data_quality", "onboarding", "engagement", "risk_policy", "intervention"]
 
 
 POLICY_PROFILE = "hr-default"
@@ -308,6 +317,10 @@ class PolicyUpdateRequest(BaseModel):
     is_active: bool | None = None
     threshold: str | None = None
     route: str | None = None
+
+
+class OperatorTriggerRequest(BaseModel):
+    employee_id: str | None = None
 
 
 ROUTES = {"GREEN", "AMBER", "RED", "CONFIDENTIAL", "DATA_QUALITY"}
@@ -950,6 +963,56 @@ def get_workbench():
     return {"cases": _workbench_cases_from_profile(_profile())}
 
 
+def _auto_profile_and_cases(profile: dict | None = None) -> tuple[dict, list[dict]]:
+    profile = profile or _profile()
+    cases = _workbench_cases_from_profile(profile)
+    auto_profile = deepcopy(profile)
+    auto_profile["operator_evidence_snapshot"] = _operator_evidence_snapshot(profile, cases)
+    return auto_profile, cases
+
+
+def _trigger_operator_receipt(operator_key: str, profile: dict, cases: list[dict], run_tag: str, employee_id: str | None = None) -> dict:
+    operator = OPERATOR_REGISTRY.get(operator_key)
+    if not operator:
+        raise HTTPException(status_code=404, detail="Day90 Operator not found")
+    return execute_supervity_operator(
+        profile,
+        cases,
+        run_tag,
+        operator_key,
+        operator["name"],
+        employee_id=employee_id,
+    )
+
+
+@router.post("/operators/{operator_key}/trigger")
+def trigger_operator(operator_key: str, request: OperatorTriggerRequest | None = None):
+    timestamp = utc_now()
+    normalized_key = operator_key.strip().lower().replace("-", "_")
+    profile, cases = _auto_profile_and_cases()
+    run_tag = f"R2-OP-{normalized_key.upper()}-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
+    employee_id = (request.employee_id.strip().upper() if request and request.employee_id else None)
+    receipt = _trigger_operator_receipt(normalized_key, profile, cases, run_tag, employee_id)
+    AUDIT_TRAIL.insert(
+        0,
+        {
+            "time": timestamp,
+            "event": "Auto operator proof",
+            "actor": receipt.get("operator_name") or "Day90 Operator",
+            "detail": str(receipt.get("detail", ""))[:240],
+        },
+    )
+    return {
+        "status": "operator_run_started" if receipt.get("ok") and receipt.get("executed") else "operator_run_recorded",
+        "message": f"{receipt.get('operator_name', 'Day90 Operator')} trigger captured. Workbench approval remains required before external action.",
+        "ready_for_live_demo": all_required_live_integrations_ready(profile["source"]),
+        "run_tag": run_tag,
+        "operator": receipt,
+        "external_actions": [],
+        "audit": deepcopy(AUDIT_TRAIL[0]),
+    }
+
+
 @router.post("/workbench/{case_id}/decision")
 def record_decision(case_id: str, request: DecisionRequest):
     for case in _workbench_cases_from_profile(_profile()):
@@ -1004,10 +1067,8 @@ def trigger_run():
     timestamp = utc_now()
     profile = _profile()
     live_ready = all_required_live_integrations_ready(profile["source"])
-    cases = _workbench_cases_from_profile(profile)
+    auto_profile, cases = _auto_profile_and_cases(profile)
     run_tag = f"R2-LIVE-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
-    auto_profile = deepcopy(profile)
-    auto_profile["operator_evidence_snapshot"] = _operator_evidence_snapshot(profile, cases)
     auto_receipt = execute_supervity_orchestrator(auto_profile, cases, run_tag)
     policy_snapshot = auto_receipt.get("policy_snapshot") or profile.get("policy_snapshot") or {}
     evidence_packet_count = auto_receipt.get("operator_evidence_packet_count", 0)

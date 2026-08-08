@@ -23,6 +23,68 @@ DEFAULT_SUPERVITY_ASANA_PROJECT_NAME = "D90TEST — Day90 Guardian"
 DEFAULT_SUPERVITY_ASANA_WORKSPACE_NAME = "My Workspace"
 SUPERVITY_STREAM_PATH = "/api/v1/workflow-runs/execute/stream"
 SUPERVITY_FAILED_STATUSES = {"failed", "cancelled"}
+DEFAULT_SUPERVITY_OPERATOR_WORKFLOW_IDS = {
+    "data_quality": "019f7b16-a2c8-7000-9cda-fb456fe15674",
+    "onboarding": "019f7b17-5cdd-7000-947b-b144827bade0",
+    "engagement": "019f7b17-221a-7000-a7d2-3c0a6980d1e7",
+    "risk_policy": "019f7b16-fb46-7000-ac4b-452617d11737",
+    "intervention": "019f7b16-d067-7000-ade6-8bbb0c0d7149",
+}
+SUPERVITY_OPERATOR_WORKFLOW_ENVS = {
+    "data_quality": "SUPERVITY_OPERATOR_DATA_QUALITY_WORKFLOW_ID",
+    "onboarding": "SUPERVITY_OPERATOR_ONBOARDING_WORKFLOW_ID",
+    "engagement": "SUPERVITY_OPERATOR_ENGAGEMENT_WORKFLOW_ID",
+    "risk_policy": "SUPERVITY_OPERATOR_RISK_POLICY_WORKFLOW_ID",
+    "intervention": "SUPERVITY_OPERATOR_INTERVENTION_WORKFLOW_ID",
+}
+SUPERVITY_OPERATOR_INPUT_FIELDS = {
+    "data_quality": [
+        "source_batch_id",
+        "as_of_datetime",
+        "run_mode",
+        "policy_profile",
+        "policy_version",
+        "scope_type",
+        "scope_value",
+    ],
+    "onboarding": [
+        "batch_id",
+        "policy_profile",
+        "policy_version",
+        "as_of_datetime",
+        "run_mode",
+        "scope_type",
+        "scope_value",
+    ],
+    "engagement": [
+        "batch_id",
+        "policy_profile",
+        "policy_version",
+        "as_of_datetime",
+        "run_mode",
+        "scope_type",
+        "scope_value",
+    ],
+    "risk_policy": [
+        "batch_id",
+        "source_batch_id",
+        "policy_profile",
+        "policy_version",
+        "as_of_datetime",
+        "run_mode",
+        "scope_type",
+        "scope_value",
+    ],
+    "intervention": [
+        "batch_id",
+        "policy_profile",
+        "policy_version",
+        "as_of_datetime",
+        "run_mode",
+        "approved_asana_project",
+        "approved_slack_channel",
+    ],
+}
 
 
 def _configured(*names: str) -> bool:
@@ -36,6 +98,12 @@ def _secret_status(name: str) -> str:
 
 def _is_supervity_stream_url(value: str) -> bool:
     return value.rstrip("/").endswith(SUPERVITY_STREAM_PATH)
+
+
+def supervity_operator_workflow_id(operator_key: str) -> str:
+    env_name = SUPERVITY_OPERATOR_WORKFLOW_ENVS.get(operator_key, "")
+    configured = os.getenv(env_name, "").strip() if env_name else ""
+    return configured or DEFAULT_SUPERVITY_OPERATOR_WORKFLOW_IDS.get(operator_key, "")
 
 
 def utc_now() -> str:
@@ -78,6 +146,10 @@ def integration_registry(source: dict) -> list[dict]:
     supervity_url = os.getenv("SUPERVITY_WORKFLOW_EXECUTE_URL", "").strip()
     supervity_workflow_id = os.getenv("SUPERVITY_WORKFLOW_ID", DEFAULT_SUPERVITY_WORKFLOW_ID).strip()
     supervity_active_org = os.getenv("SUPERVITY_ACTIVE_ORG", DEFAULT_SUPERVITY_ACTIVE_ORG).strip()
+    operator_workflow_count = sum(1 for key in DEFAULT_SUPERVITY_OPERATOR_WORKFLOW_IDS if supervity_operator_workflow_id(key))
+    operator_env_override_count = sum(
+        1 for env_name in SUPERVITY_OPERATOR_WORKFLOW_ENVS.values() if os.getenv(env_name, "").strip()
+    )
     supervity_ready = (
         _configured("SUPERVITY_WORKFLOW_EXECUTE_URL", "SUPERVITY_API_KEY")
         and _is_supervity_stream_url(supervity_url)
@@ -130,6 +202,8 @@ def integration_registry(source: dict) -> list[dict]:
                 "SUPERVITY_WORKFLOW_EXECUTE_URL": "configured" if os.getenv("SUPERVITY_WORKFLOW_EXECUTE_URL") else "missing",
                 "SUPERVITY_API_KEY": _secret_status("SUPERVITY_API_KEY"),
                 "SUPERVITY_WORKFLOW_ID": "configured" if supervity_workflow_id else "missing",
+                "SUPERVITY_OPERATOR_WORKFLOW_IDS": f"{operator_workflow_count}/{len(DEFAULT_SUPERVITY_OPERATOR_WORKFLOW_IDS)} configured",
+                "SUPERVITY_OPERATOR_ENV_OVERRIDES": f"{operator_env_override_count}/{len(SUPERVITY_OPERATOR_WORKFLOW_ENVS)} set",
                 "SUPERVITY_ACTIVE_ORG": "configured" if supervity_active_org else "not required for personal scope",
             },
         },
@@ -252,6 +326,32 @@ def _supervity_event_receipt(event_name: str, payload: dict) -> tuple[str | None
     return run_id, status
 
 
+def _supervity_event_output(event_name: str, payload: dict) -> object | None:
+    if event_name != "result":
+        return None
+
+    content = payload.get("content") if isinstance(payload.get("content"), dict) else {}
+    workflow_run = payload.get("workflowRun") if isinstance(payload.get("workflowRun"), dict) else {}
+    candidates = [
+        payload.get("output"),
+        payload.get("result"),
+        payload.get("data"),
+        content.get("output"),
+        content.get("result"),
+        content.get("text"),
+        workflow_run.get("output"),
+        workflow_run.get("result"),
+    ]
+    for candidate in candidates:
+        if isinstance(candidate, (dict, list)) and candidate:
+            return candidate
+        if isinstance(candidate, str) and candidate.strip():
+            return candidate.strip()
+        if isinstance(candidate, (int, float, bool)):
+            return candidate
+    return None
+
+
 def _supervity_contract_inputs(profile: dict) -> dict:
     """Build the exact Auto workflow input names observed from the v12 workflow metadata."""
     source = profile.get("source") if isinstance(profile.get("source"), dict) else {}
@@ -289,6 +389,264 @@ def _supervity_contract_inputs(profile: dict) -> dict:
             separators=(",", ":"),
         )
     return inputs
+
+
+def _supervity_operator_inputs(profile: dict, operator_key: str, employee_id: str | None = None) -> dict:
+    base_inputs = _supervity_contract_inputs(profile)
+    base_inputs["approved_asana_project"] = base_inputs["asana_project_name"]
+    base_inputs["approved_slack_channel"] = base_inputs["slack_channel_name"]
+    if employee_id:
+        base_inputs["scope_type"] = "employee"
+        base_inputs["scope_value"] = employee_id
+
+    field_names = SUPERVITY_OPERATOR_INPUT_FIELDS.get(operator_key, [])
+    return {field: base_inputs[field] for field in field_names if field in base_inputs}
+
+
+def execute_supervity_operator(
+    profile: dict,
+    cases: list[dict],
+    run_tag: str,
+    operator_key: str,
+    operator_name: str,
+    employee_id: str | None = None,
+) -> dict:
+    """Call one Auto Operator workflow and return a receipt shaped like the Orchestrator receipt."""
+
+    workflow_url = os.getenv("SUPERVITY_WORKFLOW_EXECUTE_URL", "").strip()
+    api_key = os.getenv("SUPERVITY_API_KEY", "").strip()
+    workflow_id = supervity_operator_workflow_id(operator_key)
+    active_org = os.getenv("SUPERVITY_ACTIVE_ORG", DEFAULT_SUPERVITY_ACTIVE_ORG).strip()
+    policy_snapshot = profile.get("policy_snapshot") if isinstance(profile.get("policy_snapshot"), dict) else None
+    operator_evidence_snapshot = (
+        profile.get("operator_evidence_snapshot")
+        if isinstance(profile.get("operator_evidence_snapshot"), dict)
+        else None
+    )
+    operator_evidence_packet_count = len(operator_evidence_snapshot.get("case_links", [])) if operator_evidence_snapshot else len(cases)
+    receipt_base = {
+        "system": "supervity_operator",
+        "operator_key": operator_key,
+        "operator_name": operator_name,
+        "employee_id": employee_id,
+        "workflow_env": SUPERVITY_OPERATOR_WORKFLOW_ENVS.get(operator_key),
+        "action_gate_status": "workbench_approval_required",
+    }
+
+    if operator_key not in DEFAULT_SUPERVITY_OPERATOR_WORKFLOW_IDS:
+        return {
+            **receipt_base,
+            "ok": False,
+            "executed": False,
+            "status": "invalid_operator",
+            "workflow_id": None,
+            "policy_snapshot": policy_snapshot,
+            "policy_snapshot_sent": False,
+            "operator_evidence_snapshot_sent": False,
+            "operator_evidence_packet_count": operator_evidence_packet_count,
+            "detail": "Unknown Day90 Operator key.",
+        }
+
+    if not workflow_url or not api_key or not workflow_id:
+        return {
+            **receipt_base,
+            "ok": False,
+            "executed": False,
+            "status": "not_configured",
+            "workflow_id": workflow_id or None,
+            "policy_snapshot": policy_snapshot,
+            "policy_snapshot_sent": False,
+            "operator_evidence_snapshot_sent": False,
+            "operator_evidence_packet_count": operator_evidence_packet_count,
+            "detail": f"{operator_name} endpoint, workflow ID, or API key is missing.",
+        }
+
+    if not _is_supervity_stream_url(workflow_url):
+        return {
+            **receipt_base,
+            "ok": False,
+            "executed": False,
+            "status": "invalid_configuration",
+            "workflow_id": workflow_id,
+            "policy_snapshot": policy_snapshot,
+            "policy_snapshot_sent": False,
+            "operator_evidence_snapshot_sent": False,
+            "operator_evidence_packet_count": operator_evidence_packet_count,
+            "detail": f"Supervity endpoint must use {SUPERVITY_STREAM_PATH}.",
+        }
+
+    workflow_inputs = _supervity_operator_inputs(profile, operator_key, employee_id)
+    if not supervity_trigger_enabled():
+        return {
+            **receipt_base,
+            "ok": True,
+            "executed": False,
+            "status": "configured_not_executed",
+            "workflow_id": workflow_id,
+            "policy_snapshot": policy_snapshot,
+            "policy_snapshot_sent": "policy_snapshot" in workflow_inputs,
+            "operator_evidence_snapshot_sent": "operator_evidence_snapshot" in workflow_inputs,
+            "operator_evidence_packet_count": operator_evidence_packet_count,
+            "input_fields_sent": sorted(workflow_inputs),
+            "detail": "Supervity is configured; execution is disabled by DAY90_SUPERVITY_TRIGGER_ENABLED.",
+        }
+
+    request_sent = False
+    try:
+        timeout_seconds = int(os.getenv("DAY90_SUPERVITY_TIMEOUT_SECONDS", "20"))
+        if timeout_seconds < 1:
+            raise ValueError("DAY90_SUPERVITY_TIMEOUT_SECONDS must be a positive integer.")
+
+        headers = {
+            "Accept": "text/event-stream",
+            "Authorization": f"Bearer {api_key}",
+            "x-source": "external",
+        }
+        if active_org:
+            headers["x-active-org"] = active_org
+
+        files = {"workflowId": (None, workflow_id)}
+        for key, value in workflow_inputs.items():
+            files[f"inputs[{key}]"] = (None, str(value))
+
+        started_at = time.monotonic()
+        run_id = None
+        status_text = None
+        operator_output = None
+        observed_events: set[str] = set()
+        error_event = False
+        observation_timed_out = False
+
+        request_sent = True
+        with httpx.stream(
+            "POST",
+            workflow_url,
+            headers=headers,
+            files=files,
+            timeout=timeout_seconds,
+        ) as response:
+            if response.status_code >= 400:
+                return {
+                    **receipt_base,
+                    "ok": False,
+                    "executed": False,
+                    "request_sent": True,
+                    "status": "request_rejected",
+                    "workflow_id": workflow_id,
+                    "status_code": response.status_code,
+                    "policy_snapshot": policy_snapshot,
+                    "policy_snapshot_sent": "policy_snapshot" in workflow_inputs,
+                    "operator_evidence_snapshot_sent": "operator_evidence_snapshot" in workflow_inputs,
+                    "operator_evidence_packet_count": operator_evidence_packet_count,
+                    "input_fields_sent": sorted(workflow_inputs),
+                    "detail": f"Supervity rejected the operator request with HTTP {response.status_code}.",
+                }
+
+            for event_name, event_payload in _iter_supervity_sse_events(response.iter_lines()):
+                observed_events.add(event_name)
+                event_run_id, event_status = _supervity_event_receipt(event_name, event_payload)
+                event_output = _supervity_event_output(event_name, event_payload)
+                run_id = event_run_id or run_id
+                status_text = event_status or status_text
+                operator_output = event_output if event_output is not None else operator_output
+                if event_name == "error" or (event_name == "result" and event_payload.get("success") is False):
+                    error_event = True
+                    break
+                if status_text and status_text.lower() in SUPERVITY_FAILED_STATUSES:
+                    error_event = True
+                    break
+                if time.monotonic() - started_at >= timeout_seconds:
+                    observation_timed_out = True
+                    break
+
+            status_code = response.status_code
+
+        if error_event:
+            return {
+                **receipt_base,
+                "ok": False,
+                "executed": bool(run_id),
+                "request_sent": True,
+                "status": status_text or "failed",
+                "workflow_id": workflow_id,
+                "status_code": status_code,
+                "run_id": run_id,
+                "events_observed": sorted(observed_events),
+                "operator_output": operator_output,
+                "policy_snapshot": policy_snapshot,
+                "policy_snapshot_sent": "policy_snapshot" in workflow_inputs,
+                "operator_evidence_snapshot_sent": "operator_evidence_snapshot" in workflow_inputs,
+                "operator_evidence_packet_count": operator_evidence_packet_count,
+                "input_fields_sent": sorted(workflow_inputs),
+                "detail": "Supervity reported an operator execution failure.",
+            }
+
+        if not run_id:
+            return {
+                **receipt_base,
+                "ok": False,
+                "executed": False,
+                "request_sent": True,
+                "status": "invalid_response",
+                "workflow_id": workflow_id,
+                "status_code": status_code,
+                "events_observed": sorted(observed_events),
+                "operator_output": operator_output,
+                "policy_snapshot": policy_snapshot,
+                "policy_snapshot_sent": "policy_snapshot" in workflow_inputs,
+                "operator_evidence_snapshot_sent": "operator_evidence_snapshot" in workflow_inputs,
+                "operator_evidence_packet_count": operator_evidence_packet_count,
+                "input_fields_sent": sorted(workflow_inputs),
+                "detail": "Supervity returned no operator workflow run ID; execution was not verified.",
+            }
+
+        return {
+            **receipt_base,
+            "ok": True,
+            "executed": True,
+            "request_sent": True,
+            "status": status_text or "accepted",
+            "workflow_id": workflow_id,
+            "status_code": status_code,
+            "run_id": run_id,
+            "events_observed": sorted(observed_events),
+            "operator_output": operator_output,
+            "observation_timed_out": observation_timed_out,
+            "policy_snapshot": policy_snapshot,
+            "policy_snapshot_sent": "policy_snapshot" in workflow_inputs,
+            "operator_evidence_snapshot_sent": "operator_evidence_snapshot" in workflow_inputs,
+            "operator_evidence_packet_count": operator_evidence_packet_count,
+            "input_fields_sent": sorted(workflow_inputs),
+            "detail": f"{operator_name} accepted verified run {run_id}; Workbench approval remains required.",
+        }
+    except (httpx.HTTPError, json.JSONDecodeError, UnicodeDecodeError, ValueError) as exc:  # pragma: no cover - network dependent
+        return {
+            **receipt_base,
+            "ok": False,
+            "executed": False,
+            "request_sent": request_sent,
+            "status": "connection_error",
+            "workflow_id": workflow_id,
+            "policy_snapshot": policy_snapshot,
+            "policy_snapshot_sent": False,
+            "operator_evidence_snapshot_sent": False,
+            "operator_evidence_packet_count": operator_evidence_packet_count,
+            "detail": f"Supervity operator connection failed safely ({type(exc).__name__}).",
+        }
+    except Exception as exc:  # pragma: no cover - defensive production boundary
+        return {
+            **receipt_base,
+            "ok": False,
+            "executed": False,
+            "request_sent": request_sent,
+            "status": "connection_error",
+            "workflow_id": workflow_id,
+            "policy_snapshot": policy_snapshot,
+            "policy_snapshot_sent": False,
+            "operator_evidence_snapshot_sent": False,
+            "operator_evidence_packet_count": operator_evidence_packet_count,
+            "detail": f"Supervity operator connection failed safely ({type(exc).__name__}).",
+        }
 
 
 def execute_supervity_orchestrator(profile: dict, cases: list[dict], run_tag: str) -> dict:

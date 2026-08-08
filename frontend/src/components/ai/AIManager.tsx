@@ -14,6 +14,26 @@ import { ChatInput } from './ChatInput'
 import { CapabilityBubbles } from './CapabilityBubbles'
 
 const GUARDIAN_REVIEW_ACTION = 'Run Guardian Review'
+const RUN_COMMAND_PATTERN = /\b(re-?run|re-?trigger|retry|run|trigger|start)\b/
+
+type OperatorCommand = {
+  key: string
+  employeeId?: string
+}
+
+interface OperatorReceipt {
+  operator_key?: string
+  operator_name?: string
+  status?: string
+  workflow_id?: string | null
+  run_id?: string | null
+  status_code?: number
+  events_observed?: string[]
+  input_fields_sent?: string[]
+  operator_output?: unknown
+  action_gate_status?: string
+  detail?: string
+}
 
 interface GuardianRunResponse {
   status: string
@@ -34,6 +54,67 @@ interface GuardianRunResponse {
   audit?: {
     event?: string
   }
+}
+
+interface OperatorRunResponse {
+  status: string
+  message?: string
+  run_tag: string
+  operator?: OperatorReceipt
+  external_actions?: unknown[]
+  audit?: {
+    event?: string
+  }
+}
+
+const OPERATOR_ALIASES: Array<{ key: string; terms: string[] }> = [
+  { key: 'data_quality', terms: ['data quality', 'data_quality', 'hr data quality', 'lifecycle'] },
+  { key: 'onboarding', terms: ['onboarding', 'access reconciliation', 'access'] },
+  { key: 'engagement', terms: ['engagement', 'confidentiality', 'confidential'] },
+  { key: 'risk_policy', terms: ['risk policy', 'policy evaluation', 'retention risk', 'risk'] },
+  { key: 'intervention', terms: ['intervention', 'outcome', 'execution'] },
+]
+
+function parseOperatorCommand(content: string): OperatorCommand | null {
+  const lower = content.trim().toLowerCase()
+  if (!RUN_COMMAND_PATTERN.test(lower) || !lower.includes('operator')) return null
+  const match = OPERATOR_ALIASES.find((operator) => operator.terms.some((term) => lower.includes(term)))
+  if (!match) return null
+  const employeeMatch = content.match(/\bEMP\d+\b/i)
+  return { key: match.key, employeeId: employeeMatch?.[0]?.toUpperCase() }
+}
+
+function isOrchestratorCommand(content: string) {
+  const lower = content.trim().toLowerCase()
+  if (lower === GUARDIAN_REVIEW_ACTION.toLowerCase()) return true
+  return RUN_COMMAND_PATTERN.test(lower) && /\b(orchestrator|guardian review|day90 guardian)\b/.test(lower)
+}
+
+function compactOutput(value: unknown) {
+  if (value == null || value === '') return ''
+  if (typeof value === 'string') return value.length > 500 ? `${value.slice(0, 500)}...` : value
+  try {
+    const serialized = JSON.stringify(value)
+    return serialized.length > 500 ? `${serialized.slice(0, 500)}...` : serialized
+  } catch {
+    return String(value)
+  }
+}
+
+function formatOperatorReceipt(receipt: OperatorReceipt) {
+  const runIdLine = receipt.run_id ? `\n- Auto run ID: \`${receipt.run_id}\`` : ''
+  const workflowIdLine = receipt.workflow_id ? `\n- Operator workflow ID: \`${receipt.workflow_id}\`` : ''
+  const httpStatusLine = typeof receipt.status_code === 'number' ? `\n- Supervity HTTP status: **${receipt.status_code}**` : ''
+  const streamEventsLine = receipt.events_observed?.length ? `\n- Stream events observed: \`${receipt.events_observed.join(', ')}\`` : ''
+  const inputLine = receipt.input_fields_sent?.length ? `\n- Inputs sent: \`${receipt.input_fields_sent.join(', ')}\`` : ''
+  const output = compactOutput(receipt.operator_output)
+  const outputLine = output ? `\n- Output: ${output}` : '\n- Output: not returned by workflow'
+  const gateLine = receipt.action_gate_status ? `\n- Workbench gate: **${receipt.action_gate_status.replaceAll('_', ' ')}**` : ''
+  const detailLine = receipt.detail ? `\n\n${receipt.detail}` : ''
+  return (
+    `- Operator: **${receipt.operator_name ?? receipt.operator_key ?? 'Day90 Operator'}**\n` +
+    `- Operator status: **${receipt.status ?? 'not reported'}**${runIdLine}${workflowIdLine}${httpStatusLine}${streamEventsLine}${inputLine}${outputLine}${gateLine}${detailLine}`
+  )
 }
 
 // ============================================================================
@@ -136,13 +217,44 @@ export function AIManager() {
     // Add user message
     addMessage({ role: 'user', content })
 
-    if (content.trim().toLowerCase() === GUARDIAN_REVIEW_ACTION.toLowerCase()) {
+    if (isOrchestratorCommand(content)) {
       addMessage({
         role: 'assistant',
         content:
-          'Guardian Review will call the existing Auto orchestration endpoint. The trigger cannot create Slack or Asana actions; those remain behind Workbench approval. Confirm below when you are ready.',
+          'Guardian Review will call the Auto Orchestrator workflow only. Individual Operators can be run separately with commands like `Run Engagement Operator for EMP7041`. The Orchestrator trigger cannot create Slack or Asana actions; those remain behind Workbench approval. Confirm below when you are ready.',
       })
       setIsGuardianConfirmationOpen(true)
+      return
+    }
+
+    const operatorCommand = parseOperatorCommand(content)
+    if (operatorCommand) {
+      addMessage({ role: 'assistant', content: '', isLoading: true })
+      setIsTyping(true)
+      try {
+        const result = await apiClient.post<OperatorRunResponse>(
+          `/api/day90/operators/${operatorCommand.key}/trigger`,
+          operatorCommand.employeeId ? { employee_id: operatorCommand.employeeId } : undefined
+        )
+        const externalActionCount = result.external_actions?.length ?? 0
+        const auditLine = result.audit?.event ? `\n- Audit event: **${result.audit.event}**` : ''
+        addMessage({
+          role: 'assistant',
+          content:
+            `${result.message ?? 'Operator trigger captured.'}\n\n` +
+            `- Run tag: \`${result.run_tag}\`\n` +
+            `- Command Center status: **${result.status}**\n` +
+            `${result.operator ? formatOperatorReceipt(result.operator) : '- Operator: not reported'}\n` +
+            `- External actions created by this trigger: **${externalActionCount}**${auditLine}`,
+        })
+      } catch (error) {
+        addMessage({
+          role: 'assistant',
+          content: `Operator run was not triggered. ${error instanceof Error ? error.message : 'Please try again.'}`,
+        })
+      } finally {
+        setIsTyping(false)
+      }
       return
     }
 

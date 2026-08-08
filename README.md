@@ -194,6 +194,11 @@ SUPABASE_SERVICE_ROLE_KEY=
 SUPERVITY_WORKFLOW_EXECUTE_URL=
 SUPERVITY_API_KEY=
 SUPERVITY_WORKFLOW_ID=019f7b16-6fc0-7000-923b-f6ebf9317c02
+SUPERVITY_OPERATOR_DATA_QUALITY_WORKFLOW_ID=019f7b16-a2c8-7000-9cda-fb456fe15674
+SUPERVITY_OPERATOR_ONBOARDING_WORKFLOW_ID=019f7b17-5cdd-7000-947b-b144827bade0
+SUPERVITY_OPERATOR_ENGAGEMENT_WORKFLOW_ID=019f7b17-221a-7000-a7d2-3c0a6980d1e7
+SUPERVITY_OPERATOR_RISK_POLICY_WORKFLOW_ID=019f7b16-fb46-7000-ac4b-452617d11737
+SUPERVITY_OPERATOR_INTERVENTION_WORKFLOW_ID=019f7b16-d067-7000-ade6-8bbb0c0d7149
 SUPERVITY_ACTIVE_ORG=
 SUPERVITY_RUN_MODE=dry_run
 SUPERVITY_SCOPE_TYPE=all
@@ -256,7 +261,8 @@ DAY90_DATASET_DIR=/app/day90_dataset
 | `GET /api/day90/dashboard` | Main command-center payload: metrics, routes, integrations, audit, operator status. |
 | `GET /api/day90/data-profile` | Source lineage, table counts, computed risk signals, and route counts. |
 | `GET /api/day90/workbench` | Human-review cases and safe evidence. |
-| `POST /api/day90/runs/trigger` | Starts a live-ready scan; external actions stay behind the Workbench approval gate. |
+| `POST /api/day90/runs/trigger` | Starts the approval-gated Supervity Orchestrator workflow; external actions stay behind the Workbench approval gate. |
+| `POST /api/day90/operators/{operator_key}/trigger` | Lets AI Manager trigger or retrigger one Supervity Operator workflow by key (`data_quality`, `onboarding`, `engagement`, `risk_policy`, or `intervention`) and returns its receipt. |
 | `POST /api/day90/workbench/{case_id}/decision` | Records approve/modify/reject; only an approval creates route-aware masked actions. |
 | `GET /api/day90/integrations` | Integration readiness without exposing secrets. |
 | `GET /api/day90/policies` | Active Day90 policy rules. |

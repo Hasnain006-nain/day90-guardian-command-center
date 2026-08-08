@@ -12,6 +12,11 @@ interface Capability {
 
 const CAPABILITIES: Capability[] = [
   { icon: Icons.zap, label: 'Run Guardian Review', query: 'Run Guardian Review' },
+  { icon: Icons.activity, label: 'Run Data Quality Operator', query: 'Run Data Quality Operator' },
+  { icon: Icons.users, label: 'Run Onboarding Operator', query: 'Run Onboarding Operator' },
+  { icon: Icons.shield, label: 'Run Engagement Operator', query: 'Run Engagement Operator' },
+  { icon: Icons.brain, label: 'Run Risk Policy Operator', query: 'Run Risk Policy Operator' },
+  { icon: Icons.zap, label: 'Run Intervention Operator', query: 'Run Intervention Operator' },
   { icon: Icons.activity, label: 'Show readiness proof', query: 'Show me the live operating proof path' },
   { icon: Icons.helpCircle, label: 'What can you help with?', query: 'What can you help me with?' },
   { icon: Icons.users, label: 'Summarize Workbench', query: 'Summarize the Workbench queue and human approval gate' },
