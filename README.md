@@ -308,6 +308,4 @@ Before publishing:
 - Do not commit screenshots or recordings containing visible secrets.
 - Rotate any token that was accidentally shown during development.
 
-## Team
 
-Team Zero — Day90 Guardian.
