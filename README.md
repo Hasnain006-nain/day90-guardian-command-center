@@ -1,51 +1,80 @@
-GuardianOS: AI Employee Command Center
+🚀 GuardianOS: AI Employee Command Center
 
-Governed AI Employee for People Operations
+A Governed Multi-Agent AI Employee for People Operations
 
-GuardianOS is an autonomous AI employee that helps People Operations
-teams detect workforce risks, analyze operational signals, coordinate
-specialized AI operators, and execute safe actions with human approval.
-
-GuardianOS is not a simple dashboard or chatbot. It is a governed AI
-operating system with:
-
--   Multi-agent orchestration
--   Policy-based decision making
--   Human-in-the-loop approval
--   Explainable recommendations
--   Audit trails
--   Secure Slack and Asana workflows
-
-  One AI employee, not five disconnected automations.
+Detect risks. Understand context. Coordinate AI operators. Take safe
+action with human control.
 
 ------------------------------------------------------------------------
 
-Problem
+🧠 What is GuardianOS?
 
-Modern organizations have employee information distributed across:
+GuardianOS is not another HR dashboard and not another chatbot.
 
--   Employee records
--   Onboarding tasks
--   Access provisioning
--   Compliance systems
--   Payroll workflows
--   Manager follow-ups
--   Learning milestones
--   Engagement signals
+It is a governed AI employee that continuously analyzes People
+Operations workflows, detects hidden risks, coordinates specialized AI
+operators, and prepares safe interventions with human approval.
 
-Each system only shows part of the employee journey.
+GuardianOS creates a complete operational intelligence loop:
 
-GuardianOS creates a complete operational loop:
-
-Evidence → AI Analysis → Policy Decision → Human Approval → Safe Action
-→ Audit Trail
+                     Evidence
+                        |
+                        v
+              AI Specialist Operators
+                        |
+                        v
+                Policy Evaluation
+                        |
+                        v
+              Human Approval Layer
+                        |
+                        v
+              Safe Operational Action
+                        |
+                        v
+                  Audit Trail
 
 ------------------------------------------------------------------------
 
-AI Employee Architecture
+🎯 The Problem
 
-GuardianOS is built as one AI employee composed of specialized
-operators.
+Modern organizations have employee information scattered across multiple
+systems.
+
+  System       Hidden Problem
+  ------------ ------------------------------------
+  Onboarding   Employees blocked by missing tasks
+  IT Access    Delayed laptop, VPN, email access
+  Compliance   Missing mandatory requirements
+  Payroll      Incorrect or incomplete records
+  Managers     Missed follow-ups
+  Engagement   Early warning signals ignored
+
+The problem is simple:
+
+  Companies have data everywhere, but no intelligent system connecting
+  the signals together.
+
+------------------------------------------------------------------------
+
+💡 The GuardianOS Solution
+
+GuardianOS acts as an AI teammate for People Operations.
+
+It combines:
+
+✅ Data validation
+✅ Multi-agent reasoning
+✅ Policy-based decisions
+✅ Human approval workflows
+✅ Safe external actions
+✅ Complete audit history
+
+------------------------------------------------------------------------
+
+🏗️ AI Employee Architecture
+
+GuardianOS uses one AI employee composed of specialized operators.
 
     flowchart LR
 
@@ -58,12 +87,10 @@ operators.
     B --> E["Engagement & Confidentiality Operator"]
 
     C --> F["Evidence Validation"]
-
     D --> F
-
     E --> F
 
-    F --> G["Risk & Policy Evaluation"]
+    F --> G["Risk & Policy Engine"]
 
     G -->|Green| H["No Action"]
 
@@ -76,36 +103,35 @@ operators.
     J --> L["Audit Trail"]
 
     K --> L
-
     H --> L
 
 ------------------------------------------------------------------------
 
-AI Operators
+🤖 AI Operator System
 
   -----------------------------------------------------------------------
-  Operator                            Responsibility
+  AI Operator                         Responsibility
   ----------------------------------- -----------------------------------
   HR Data Quality Operator            Validates employee records,
-                                      lifecycle stage, ownership, and
+                                      lifecycle stages, ownership, and
                                       data completeness
 
-  Onboarding & Access Operator        Reconciles onboarding tasks with
-                                      system access evidence
+  Onboarding & Access Operator        Checks onboarding progress against
+                                      access evidence
 
-  Engagement & Confidentiality        Detects engagement signals while
-  Operator                            protecting confidential information
+  Engagement & Confidentiality        Detects engagement risks while
+  Operator                            protecting sensitive information
 
   Risk & Policy Operator              Applies governance rules and
-                                      determines routing
+                                      determines case routing
 
-  Intervention Operator               Creates approved operational
-                                      actions and records outcomes
+  Intervention Operator               Creates approved actions and
+                                      records outcomes
   -----------------------------------------------------------------------
 
 ------------------------------------------------------------------------
 
-System Architecture
+⚙️ System Architecture
 
     flowchart TB
 
@@ -113,15 +139,13 @@ System Architecture
 
     Backend["FastAPI Backend"]
 
-    Agents["AI Employee Orchestration Layer"]
+    AI["AI Employee Layer"]
 
     Policy["Policy Engine"]
 
-    Database["Supabase"]
+    Database["Supabase Database"]
 
-    Fallback["CSV Dataset"]
-
-    Supervity["Supervity AI Workflow"]
+    Workflow["Supervity AI Workflow"]
 
     Slack["Slack"]
 
@@ -129,15 +153,13 @@ System Architecture
 
     Frontend --> Backend
 
-    Backend --> Agents
+    Backend --> AI
 
-    Database --> Agents
+    Database --> AI
 
-    Fallback --> Agents
+    AI --> Workflow
 
-    Agents --> Supervity
-
-    Agents --> Policy
+    AI --> Policy
 
     Policy --> Backend
 
@@ -147,129 +169,111 @@ System Architecture
 
 ------------------------------------------------------------------------
 
-Data Architecture
+🖥️ Product Experience
 
-    flowchart LR
+📊 Command Dashboard
 
-    A["HR Data Sources"]
+Provides:
 
-    B["Data Validation"]
-
-    C["AI Specialist Operators"]
-
-    D["Risk Calculation"]
-
-    E["Policy Engine"]
-
-    F["Human Approval"]
-
-    G["Operational Action"]
-
-    A --> B
-
-    B --> C
-
-    C --> D
-
-    D --> E
-
-    E --> F
-
-    F --> G
-
-Data sources include:
-
--   Workers
--   Onboarding tasks
--   Provisioning records
--   Engagement records
--   Manager directory
--   Locations
--   Compliance items
--   Payroll records
--   Learning milestones
--   Attrition context
--   Cross-team dependencies
+  Feature              Purpose
+  -------------------- --------------------------------
+  Workforce Overview   Understand operational health
+  Risk Routes          View Green / Amber / Red cases
+  Operator Status      Monitor AI activity
+  Audit Timeline       Track decisions
 
 ------------------------------------------------------------------------
 
-Governance and Safety
+🛠️ AI Workbench
 
-GuardianOS avoids unsafe automation.
+A human decision center for:
 
-    flowchart LR
+-   🟡 Amber cases
+-   🔴 Red cases
+-   🔒 Confidential cases
+-   ⚠️ Data quality issues
 
-    Case["Detected Case"]
-
-    Case --> Decision{"Risk Classification"}
-
-    Decision --> Green["Green<br/>No Action"]
-
-    Decision --> Amber["Amber<br/>Human Approval"]
-
-    Decision --> Red["Red<br/>Restricted Review"]
-
-    Decision --> Confidential["Confidential<br/>Internal Only"]
-
-    Decision --> Data["Data Quality<br/>Fix Required"]
-
-Rules:
-
--   Confidential information remains protected
--   Sensitive cases require human approval
--   External actions require approval
--   Decisions are recorded
--   Unsafe data conditions stop automation
+Humans remain responsible for important decisions.
 
 ------------------------------------------------------------------------
 
-Product Features
-
-Dashboard
-
--   Workforce health
--   Risk routes
--   Operator status
--   Integration status
--   Audit history
-
-AI Workbench
-
-Human review center for:
-
--   Amber cases
--   Red cases
--   Confidential cases
--   Data quality issues
-
-AI Policies
+📜 AI Policy Engine
 
 Controls:
 
--   Risk thresholds
--   Routing rules
--   Approval requirements
-
-Data Manager
-
-Shows:
-
--   Source lineage
--   Connected systems
--   Computed signals
-
-AI Manager
-
-Allows users to ask:
-
--   Why is this employee at risk?
--   Which team has onboarding problems?
--   What action should happen next?
--   What policies are active?
+  Policy           Example
+  ---------------- ---------------------------------------
+  Risk Threshold   When escalation happens
+  Approval Rules   When humans must review
+  Privacy Rules    What information can leave the system
 
 ------------------------------------------------------------------------
 
-Integration Architecture
+🔎 Data Manager
+
+Provides visibility into:
+
+-   Data sources
+-   Data lineage
+-   Computed signals
+-   Operational records
+
+------------------------------------------------------------------------
+
+💬 AI Manager
+
+Ask questions like:
+
+  “Why is this employee considered high risk?”
+
+  “Which department has onboarding problems?”
+
+  “What actions should happen today?”
+
+------------------------------------------------------------------------
+
+🔄 Operational Flow
+
+    flowchart LR
+
+    A["Employee Data"]
+
+    B["Validation"]
+
+    C["AI Analysis"]
+
+    D["Risk Scoring"]
+
+    E["Policy Decision"]
+
+    F["Human Approval"]
+
+    G["Action"]
+
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    E --> F
+    F --> G
+
+------------------------------------------------------------------------
+
+🔐 Governance & Safety
+
+GuardianOS is designed for responsible AI operations.
+
+  Risk Type         System Behavior
+  ----------------- -------------------------
+  🟢 Green          Record outcome
+  🟡 Amber          Human approval required
+  🔴 Red            Restricted review
+  🔒 Confidential   Internal only
+  ⚠️ Data Quality   Fix before decision
+
+------------------------------------------------------------------------
+
+🔌 Integrations
 
     flowchart LR
 
@@ -285,62 +289,62 @@ Integration Architecture
 
 ------------------------------------------------------------------------
 
-API Architecture
+🧬 Data Architecture
 
-  Endpoint                                  Purpose
-  ----------------------------------------- ---------------------------
-  GET /api/day90/dashboard                  Command center metrics
-  GET /api/day90/data-profile               Data lineage and signals
-  GET /api/day90/workbench                  Human review queue
-  POST /api/day90/runs/trigger              Start AI workflow
-  POST /api/day90/operators/{key}/trigger   Trigger specific operator
-  POST /api/day90/workbench/{id}/decision   Approve or reject action
+GuardianOS processes:
 
-------------------------------------------------------------------------
-
-Technology Stack
-
-Frontend: - Next.js - TypeScript - React
-
-Backend: - FastAPI - Python
-
-AI: - Multi-agent orchestration - LLM reasoning - Policy-based
-workflows - Human-in-the-loop AI
-
-Infrastructure: - Docker - Supabase - Vercel
+  Data Source            Purpose
+  ---------------------- ----------------------
+  Workers                Employee lifecycle
+  Onboarding Tasks       Progress tracking
+  Provisioning Records   Access verification
+  Engagement Records     Operational signals
+  Manager Directory      Ownership validation
+  Compliance Items       Requirement tracking
+  Payroll Records        Process validation
+  Learning Milestones    Development tracking
 
 ------------------------------------------------------------------------
 
-Deployment
+🛠️ Technology Stack
 
-Frontend:
-
-    Next.js
-       |
-       v
-    Vercel
-
-Backend:
-
-    FastAPI
-       |
-       v
-    Vercel
+  Layer             Technology
+  ----------------- -------------------------------------------
+  Frontend          Next.js + TypeScript
+  Backend           FastAPI + Python
+  AI                Multi-Agent Orchestration + LLM Reasoning
+  Database          Supabase
+  Workflow Engine   Supervity Auto
+  Deployment        Vercel + Docker
 
 ------------------------------------------------------------------------
 
-Local Development
+🌐 Live Demo
 
-Requirements:
+Frontend
+
+https://day90-guardian-command-center-ui.vercel.app/
+
+Backend
+
+https://day90-guardian-api-git-main-waseem-mushtaqs-projects.vercel.app/api/health
+
+------------------------------------------------------------------------
+
+🚀 Running Locally
+
+Requirements
 
 -   Docker Desktop
 -   Git
 -   Node.js
 -   Python
 
-Run:
+Start
 
     docker compose up --build -d
+
+Open
 
 Frontend:
 
@@ -352,24 +356,22 @@ API:
 
 ------------------------------------------------------------------------
 
-Security
+🔮 Vision
 
-Production requirements:
+GuardianOS explores the future of AI employees.
 
--   Store secrets only in environment variables
--   Never commit .env files
--   Keep approval gates before external actions
--   Protect confidential cases
--   Maintain complete audit records
+The goal is not replacing People Operations teams.
+
+The goal is building AI teammates that:
+
+-   understand context
+-   follow governance rules
+-   explain decisions
+-   help humans act faster
 
 ------------------------------------------------------------------------
 
-Vision
+⭐ Built for the AI Builders Hackathon
 
-GuardianOS explores how AI employees can become reliable operational
-teammates.
-
-The goal is not replacing People Ops teams.
-
-The goal is building AI systems that understand context, follow rules,
-and help humans make better decisions.
+GuardianOS demonstrates how autonomous AI agents can work inside real
+operational workflows while keeping humans in control.
