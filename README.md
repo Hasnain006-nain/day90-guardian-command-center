@@ -1,370 +1,309 @@
-Day90 Guardian Command Center
+# Day90 Guardian Command Center
 
-Governed AI Employee for People Operations
+Governed HR & People Ops AI employee for the Autopilot Asia Hackathon.
 
-Day90 Guardian helps People Ops teams identify onboarding, access,
-compliance, payroll, manager-follow-up, and engagement risks before they
-become operational problems.
+Day90 Guardian helps People Ops teams catch onboarding, access, compliance, payroll, manager-follow-up, and engagement risks before they become retention problems. It is not just a dashboard: it is a governed command center with policy gates, human review queues, an audit trail, and live handoffs to Slack and Asana.
 
-It is not just a dashboard. It is a governed AI command center with:
+> **One AI employee, not five disconnected automations.** Day90 Guardian validates evidence, coordinates specialist operators, applies an explicit policy, and keeps a human accountable for any consequential action.
 
--   Policy gates
--   Human review queues
--   Audit trails
--   AI specialist operators
--   Secure Slack and Asana workflows
+## What problem it solves
 
-  One AI employee, not five disconnected automations.
+The first 90 days of employment are noisy. HR data is spread across onboarding tasks, access provisioning, compliance records, payroll checks, manager follow-ups, learning milestones, and engagement signals. Humans usually discover problems late because each system only shows one slice of the truth.
 
-  Day90 Guardian validates evidence, coordinates specialist operators,
-  applies explicit policies, and keeps humans accountable for important
-  decisions.
+Day90 Guardian combines those signals into one governed workflow:
 
-------------------------------------------------------------------------
+1. Validate whether the employee data is safe and complete enough to use.
+2. Reconcile onboarding tasks with access/provisioning evidence.
+3. Separate confidential engagement signals from normal reporting.
+4. Apply editable People Ops policies to route each case.
+5. Create safe human-review actions only when the case is allowed to leave the command center.
 
-What Problem It Solves
+## Why this is different
 
-The first 90 days of employment involve many connected processes:
+Most HR dashboards report a problem after it has already been noticed. Day90 Guardian creates an accountable operating loop:
 
--   Employee onboarding
--   Access provisioning
--   Compliance requirements
--   Payroll checks
--   Manager follow-ups
--   Learning milestones
--   Engagement signals
+**evidence → specialist checks → policy decision → human approval → masked action → auditable outcome**
 
-These signals are usually distributed across different systems.
+That distinction matters for People Ops. A missing laptop can be remediated; a confidential disclosure must be protected; an incomplete manager relationship means the system should stop and ask for better data rather than make a confident-looking decision.
 
-Humans often discover problems too late because each system only shows
-one part of the employee journey.
+## Core product surfaces
 
-Day90 Guardian creates one governed workflow:
+- **Dashboard** — executive command view of cohort health, route counts, operator flow, integrations, and audit trail.
+- **Workbench** — human review queue for Amber, Red, Confidential, and Data Quality cases.
+- **AI Policies** — editable governance layer that determines how cases route.
+- **AI Insights** — generated operational patterns, bottlenecks, anomalies, and recommended actions.
+- **Data Manager** — transparent source registry showing data lineage, connected systems, source tables, and computed signals.
+- **AI Manager** — conversational control layer for asking about the system, policies, confidential handling, and operational status.
 
-1.  Validate whether employee data is complete and reliable.
-2.  Reconcile onboarding tasks with access evidence.
-3.  Protect confidential engagement information.
-4.  Apply People Ops policies.
-5.  Route cases through human review.
-6.  Create safe operational actions.
+## AI employee architecture
 
-------------------------------------------------------------------------
+Day90 Guardian is modeled as one orchestrated AI employee made from specialized operators:
 
-Why Day90 Guardian Is Different
+| Operator | Responsibility |
+| --- | --- |
+| HR Data Quality and Lifecycle Operator | Validates worker cohort, lifecycle stage, manager references, location, and source completeness before decisions run. |
+| Onboarding Task and Access Reconciliation Operator | Compares onboarding task status with laptop, badge, VPN, email, and system access evidence. |
+| Engagement and Confidentiality Guard Operator | Reads engagement/non-response signals and isolates confidential disclosures from normal reporting. |
+| Retention Risk and Policy Evaluation Operator | Applies Day90 policy rules and routes cases into Green, Amber, Red, Confidential, or Data Quality. |
+| Intervention Execution and Outcome Operator | Creates only safe or approved Slack/Asana interventions and records external proof. |
 
-Most operational dashboards only report problems.
+The backend exposes the orchestration through FastAPI endpoints; the frontend renders the command center in Next.js.
 
-Day90 Guardian creates an accountable AI operating loop:
+```mermaid
+flowchart LR
+  A["Supabase HR records\nCSV fallback"] --> B["Data Quality & Lifecycle"]
+  B --> C["Onboarding & Access\nparallel"]
+  B --> D["Engagement & Confidentiality\nparallel"]
+  C --> E["Evidence fan-in"]
+  D --> E
+  E --> F["Retention Risk & Policy"]
+  F -->|"Amber"| G["Human review + safe intervention"]
+  F -->|"Red / Confidential / Data Quality"| H["Restricted Workbench gate"]
+  G --> I["Masked Slack notice\nassigned Asana task"]
+  H --> J["Decision and audit trail"]
+  I --> J
+```
 
-    Evidence
-        ↓
-    Specialist AI Operators
-        ↓
-    Policy Decision
-        ↓
-    Human Approval
-        ↓
-    Safe Action
-        ↓
-    Audit Trail
+The same coordination is visible in the saved Supervity workflow: two specialist branches run in parallel, merge at fan-in, then follow the policy-selected route.
 
-The system does not blindly automate sensitive decisions.
+## Data model
 
-Examples:
+The system computes signals from HR source tables including:
 
-  Situation                       Guardian Behavior
-  ------------------------------- -----------------------------------
-  Missing laptop access           Creates safe remediation workflow
-  Confidential employee concern   Keeps information restricted
-  Missing ownership data          Stops and requests correction
-  Operational delay               Routes to the correct reviewer
+- Workers
+- Onboarding tasks
+- Provisioning/access records
+- Engagement records
+- Manager directory
+- Locations/entities
+- Compliance items
+- Payroll records
+- Learning milestones
+- Attrition history context
+- Cross-team dependencies
 
-------------------------------------------------------------------------
+The app reports this as 11/11 operational HR tables loaded. The 17 cohort count
+is shown separately because it is derived from Workers, not a separate source
+table. The source workbook's Field Dictionary is treated as a semantic reference
+for the table fields, not as an operational table.
 
-Core Product Surfaces
+Primary source is Supabase when configured. The mounted CSV dataset is retained as a controlled local fallback.
 
-Dashboard
+## Governance and privacy rules
 
-Executive command view showing:
+Day90 Guardian intentionally avoids unsafe automation:
 
--   Workforce health
--   Risk routes
--   Operator activity
--   Integrations
--   Audit history
+- Confidential pulse text is not displayed in dashboard, insights, Slack messages, or public Asana task descriptions.
+- Red and Confidential cases require human review before broad external action.
+- Unsafe joins, missing manager ownership, and chronology problems route to Data Quality instead of being auto-resolved.
+- Retention impact is framed as leading-risk reduction, not as a measured attrition outcome claim.
+- External Slack/Asana actions include masked case keys and safe summaries only.
 
-Workbench
-
-Human review environment for:
-
--   Amber cases
--   Red cases
--   Confidential cases
--   Data quality issues
-
-AI Policies
-
-Governance layer controlling:
-
--   Routing rules
--   Risk thresholds
--   Approval requirements
-
-AI Insights
-
-Provides:
-
--   Operational patterns
--   Bottlenecks
--   Anomalies
--   Recommended actions
-
-Data Manager
-
-Provides transparency into:
-
--   Source systems
--   Data lineage
--   Computed signals
-
-AI Manager
-
-Conversational control layer for understanding:
-
--   Current risks
--   Policies
--   Operational status
--   Recommended actions
-
-------------------------------------------------------------------------
-
-AI Employee Architecture
-
-Day90 Guardian is modeled as one orchestrated AI employee made from
-specialized operators.
-
-AI Operators
-
-  -----------------------------------------------------------------------
-  Operator                            Responsibility
-  ----------------------------------- -----------------------------------
-  HR Data Quality and Lifecycle       Validates worker records, lifecycle
-  Operator                            stages, manager references,
-                                      locations, and data completeness
-
-  Onboarding Task and Access          Compares onboarding status with
-  Reconciliation Operator             laptop, badge, VPN, email, and
-                                      system access evidence
-
-  Engagement and Confidentiality      Detects engagement signals while
-  Guard Operator                      protecting confidential information
-
-  Retention Risk and Policy           Applies policies and routes cases
-  Evaluation Operator                 into Green, Amber, Red,
-                                      Confidential, or Data Quality
-
-  Intervention Execution and Outcome  Creates approved Slack/Asana
-  Operator                            interventions and records outcomes
-  -----------------------------------------------------------------------
-
-------------------------------------------------------------------------
-
-Architecture Flow
-
-    flowchart LR
-
-    A["Supabase HR records<br/>CSV fallback"] --> B["Data Quality & Lifecycle"]
-
-    B --> C["Onboarding & Access<br/>parallel"]
-
-    B --> D["Engagement & Confidentiality<br/>parallel"]
-
-    C --> E["Evidence fan-in"]
-
-    D --> E
-
-    E --> F["Retention Risk & Policy"]
-
-    F -->|"Amber"| G["Human review + safe intervention"]
-
-    F -->|"Red / Confidential / Data Quality"| H["Restricted Workbench gate"]
-
-    G --> I["Masked Slack notice<br/>Assigned Asana task"]
-
-    H --> J["Decision and audit trail"]
-
-    I --> J
-
-------------------------------------------------------------------------
-
-Data Model
-
-Day90 Guardian computes signals from:
-
-  Data Source               Purpose
-  ------------------------- ---------------------------
-  Workers                   Employee lifecycle
-  Onboarding Tasks          Progress tracking
-  Provisioning Records      Access verification
-  Engagement Records        Operational signals
-  Manager Directory         Ownership validation
-  Locations                 Organization context
-  Compliance Items          Requirement tracking
-  Payroll Records           Process validation
-  Learning Milestones       Development tracking
-  Attrition Context         Risk analysis
-  Cross-team Dependencies   Operational relationships
-
-Primary source:
-
-    Supabase
-
-Controlled fallback:
-
-    CSV Dataset
-
-------------------------------------------------------------------------
-
-Governance and Privacy
-
-Day90 Guardian intentionally avoids unsafe automation.
-
-Safety Rules
-
--   Confidential information is protected.
--   Red and confidential cases require human review.
--   Unsafe data joins stop automation.
--   External actions only happen after approval.
--   Decisions are recorded.
-
-Risk Routing
-
-  Route          System Behavior                External Visibility
-  -------------- ------------------------------ ------------------------
-  Green          Safe outcome recorded          None
-  Amber          Human approval before action   Safe summary only
-  Red            Restricted review              Restricted access only
-  Confidential   Internal handling              No external action
-  Data Quality   Fix data before decision       No action
-
-------------------------------------------------------------------------
-
-Integrations
+| Route | What the system does | External visibility |
+| --- | --- | --- |
+| Green | Records a safe outcome; no intervention is needed. | None |
+| Amber | Presents a reviewer decision; an approval can create a masked Slack notification and assigned Asana task. | Safe, reviewable summary only |
+| Red | Keeps the case restricted; an approval can create the restricted HR Asana task. | Restricted Asana only — never broad Slack |
+| Confidential / Data Quality | Holds the case in the internal Workbench until a human resolves it. | No Slack or public Asana artifact |
+
+## Live integrations
 
 Configured integrations:
 
-  Integration      Purpose
-  ---------------- ---------------------------
-  Supabase         Operational data source
-  Supervity Auto   AI workflow orchestration
-  Slack            Masked notifications
-  Asana            Reviewer tasks
+- Supabase — operational source record store
+- Supervity Auto — external AI/operator orchestration proof
+- Slack — masked human-review notification
+- Asana — assigned reviewer task with safe description
 
-------------------------------------------------------------------------
+Secrets are stored in `.env` and must not be committed. Use `.env.example` as the safe template.
 
-Technical Architecture
+## Hosted deployment
 
-Backend
+- Public command center UI: <https://day90-guardian-command-center-ui.vercel.app/>
+- Public backend health check: <https://day90-guardian-api-git-main-waseem-mushtaqs-projects.vercel.app/api/health>
+- Vercel backend project: `day90-guardian-api`
+- Vercel frontend project: `day90-guardian-command-center-ui`
 
--   FastAPI
--   Python
+The hosted UI is intentionally protected with a demo access password because the
+Workbench can create real Slack and Asana review artifacts after a human
+approval. Share the demo password only through an approved private channel; do
+not commit it to this repository.
 
-Frontend
+## Local run
 
--   Next.js
--   TypeScript
+### Prerequisites
 
-AI Layer
+- Docker Desktop
+- Git
+- PowerShell on Windows
 
--   Multi-agent orchestration
--   LLM reasoning
--   Policy-based workflows
--   Human-in-the-loop AI
+### Start services
 
-Infrastructure
-
--   Docker
--   Supabase
--   Vercel
-
-------------------------------------------------------------------------
-
-API Endpoints
-
-  Endpoint                                  Purpose
-  ----------------------------------------- ----------------------------
-  GET /api/day90/dashboard                  Main command center data
-  GET /api/day90/data-profile               Source lineage and signals
-  GET /api/day90/workbench                  Human review cases
-  POST /api/day90/runs/trigger              Start AI workflow
-  POST /api/day90/operators/{key}/trigger   Trigger operator
-  POST /api/day90/workbench/{id}/decision   Approve or reject action
-  GET /api/day90/integrations               Integration status
-  GET /api/day90/policies                   Active policies
-
-------------------------------------------------------------------------
-
-Deployment
-
-Frontend:
-
-    Next.js
-       |
-       v
-    Vercel
-
-Backend:
-
-    FastAPI
-       |
-       v
-    Vercel
-
-------------------------------------------------------------------------
-
-Local Development
-
-Requirements:
-
--   Docker Desktop
--   Git
--   Node.js
--   Python
-
-Run:
-
-    docker compose up --build -d
+```powershell
+cd C:\Users\kaout\Documents\Codex\day90-guardian-round2
+docker compose up --build -d
+```
 
 Open:
 
-Frontend:
+- Frontend: <http://127.0.0.1:3001>
+- API docs: <http://127.0.0.1:8001/api/docs>
+- Health: <http://127.0.0.1:8001/api/health>
 
-    http://127.0.0.1:3001
+### Restart after backend-only changes
 
-API:
+```powershell
+docker compose restart backend
+```
 
-    http://127.0.0.1:8001/api/docs
+### Run verification
 
-------------------------------------------------------------------------
+The backend test suite covers health/readiness, secret-safe integration status,
+route-aware Slack/Asana behavior, privacy gates, and idempotent approved actions.
+Run it inside the backend image so it uses the same dependencies as deployment:
 
-Security
+```powershell
+docker compose exec backend pytest -q
+```
 
-Production requirements:
+Or run the complete runtime checklist (health, secret-safe integrations,
+approval gating, route counts, frontend response, and container tests):
 
--   Keep secrets in environment variables.
--   Never commit .env.
--   Use approval gates before external actions.
--   Protect confidential cases.
--   Maintain audit history.
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\verify-round2.ps1
+```
 
-------------------------------------------------------------------------
+### Rebuild after frontend changes
 
-Vision
+```powershell
+docker compose up -d --build frontend
+```
 
-Day90 Guardian explores how AI employees can become reliable operational
-teammates.
+## Important environment variables
 
-The goal is not replacing People Ops teams.
+Copy `.env.example` to `.env`, then configure:
 
-The goal is building AI systems that understand context, follow rules,
-explain decisions, and help humans make better decisions.
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8001
+NEXTAUTH_URL=http://localhost:3001
+NEXTAUTH_SECRET=
+
+SUPABASE_URL=
+SUPABASE_SERVICE_ROLE_KEY=
+
+SUPERVITY_WORKFLOW_EXECUTE_URL=
+SUPERVITY_API_KEY=
+SUPERVITY_WORKFLOW_ID=019f7b16-6fc0-7000-923b-f6ebf9317c02
+SUPERVITY_OPERATOR_DATA_QUALITY_WORKFLOW_ID=019f7b16-a2c8-7000-9cda-fb456fe15674
+SUPERVITY_OPERATOR_ONBOARDING_WORKFLOW_ID=019f7b17-5cdd-7000-947b-b144827bade0
+SUPERVITY_OPERATOR_ENGAGEMENT_WORKFLOW_ID=019f7b17-221a-7000-a7d2-3c0a6980d1e7
+SUPERVITY_OPERATOR_RISK_POLICY_WORKFLOW_ID=019f7b16-fb46-7000-ac4b-452617d11737
+SUPERVITY_OPERATOR_INTERVENTION_WORKFLOW_ID=019f7b16-d067-7000-ade6-8bbb0c0d7149
+SUPERVITY_ACTIVE_ORG=
+SUPERVITY_RUN_MODE=dry_run
+SUPERVITY_SCOPE_TYPE=all
+SUPERVITY_SCOPE_VALUE=
+SUPERVITY_BATCH_ID=R2-BATCH-20260803
+SUPERVITY_SOURCE_BATCH_ID=R2-BATCH-20260803
+SUPERVITY_POLICY_PROFILE=hr-default
+SUPERVITY_POLICY_VERSION=1
+SUPERVITY_SLACK_CHANNEL_NAME=day90-test
+SUPERVITY_ASANA_PROJECT_NAME=D90TEST — Day90 Guardian
+SUPERVITY_ASANA_WORKSPACE_NAME=My Workspace
+# Keep false until the Auto workflow is confirmed approval-gated.
+DAY90_SUPERVITY_TRIGGER_ENABLED=false
+DAY90_SUPERVITY_POLICY_SNAPSHOT_INPUT_ENABLED=true
+DAY90_SUPERVITY_TIMEOUT_SECONDS=20
+
+SLACK_BOT_TOKEN=
+SLACK_CHANNEL_ID=
+
+ASANA_ACCESS_TOKEN=
+ASANA_PROJECT_GID=
+ASANA_ASSIGNEE_GID=             # optional default reviewer; otherwise the token owner is assigned
+ASANA_AMBER_ASSIGNEE_GID=       # optional HR Business Partner override
+ASANA_RED_ASSIGNEE_GID=         # optional HR Operations Lead override
+ASANA_AMBER_DUE_DAYS=1          # optional business-day deadline override
+ASANA_RED_DUE_DAYS=0            # optional business-day deadline override
+```
+
+For local Docker, the dataset is mounted to:
+
+```env
+DAY90_DATASET_DIR=/app/day90_dataset
+```
+
+### Production security requirements
+
+- Keep `AUTH_BYPASS=false` for staging and production. The backend also refuses
+  to activate the bypass when `APP_ENV=staging` or `APP_ENV=production`.
+- A Vercel deployment uses two projects: the FastAPI backend from repository
+  root and the Next.js frontend from `frontend`. Configure a shared
+  `INTERNAL_SERVICE_TOKEN` on both projects; the frontend proxy keeps it out
+  of browser code. Before sharing the hosted demo, enable
+  `DEMO_AUTH_REQUIRED=true` and set `DEMO_ACCESS_PASSWORD` and
+  `NEXTAUTH_SECRET` on the frontend project.
+- Compose defaults `APP_ENV` to `production`; local development must opt in with
+  `APP_ENV=development` and `AUTH_BYPASS=true` in the untracked `.env` file.
+- Store integration secrets only in the deployment secret manager. The
+  integration readiness endpoint returns `configured`/`missing` status and
+  never returns token fragments.
+- Use a dedicated restricted Asana project for Red cases. Confidential and
+  Data Quality routes remain internal Workbench gates and create no public
+  Slack/Asana artifact.
+- A Workbench approval is the only path that creates an approved external
+  action, and repeated approvals are idempotent.
+
+## Key API endpoints
+
+| Endpoint | Purpose |
+| --- | --- |
+| `GET /api/day90/dashboard` | Main command-center payload: metrics, routes, integrations, audit, operator status. |
+| `GET /api/day90/data-profile` | Source lineage, table counts, computed risk signals, and route counts. |
+| `GET /api/day90/workbench` | Human-review cases and safe evidence. |
+| `POST /api/day90/runs/trigger` | Starts the approval-gated Supervity Orchestrator workflow; external actions stay behind the Workbench approval gate. |
+| `POST /api/day90/operators/{operator_key}/trigger` | Lets AI Manager trigger or retrigger one Supervity Operator workflow by key (`data_quality`, `onboarding`, `engagement`, `risk_policy`, or `intervention`) and returns its receipt. |
+| `POST /api/day90/workbench/{case_id}/decision` | Records approve/modify/reject; only an approval creates route-aware masked actions. |
+| `GET /api/day90/integrations` | Integration readiness without exposing secrets. |
+| `GET /api/day90/policies` | Active Day90 policy rules. |
+| `GET /api/day90/insights` | Operational insights generated from the computed profile. |
+
+## Performance note
+
+The backend caches the computed Day90 profile in-process for one hour by default:
+
+```env
+DAY90_PROFILE_CACHE_TTL_SECONDS=3600
+```
+
+This keeps the local demo responsive while avoiding repeated full Supabase reads on every page navigation.
+
+## Live operating flow
+
+1. Open the Dashboard and review the live source, connected systems, operator flow, route counts, and audit trail.
+2. Open Data Manager to inspect source lineage, operational table coverage, and computed signals.
+3. Open Workbench and triage Amber, Red, Confidential, and Data Quality cases.
+4. Confirm that confidential cases remain masked and restricted.
+5. Trigger a Guardian Review.
+6. Approve an Amber case when a route-safe nudge is appropriate; the system records the audit entry and creates the approved Slack/Asana artifacts.
+7. Use AI Policies to adjust governed routing thresholds while keeping confidential routing fail-closed.
+8. Use AI Insights to review bottlenecks, recommendations, and operational risk patterns.
+
+The operating model is an end-to-end control loop: source records, specialist
+operator checks, policy decision, human gate, masked action receipt, and audit
+trail.
+
+For a pre-submission evidence checklist, see
+[`docs/round2-acceptance-checklist.md`](docs/round2-acceptance-checklist.md).
+GitHub Actions repeats the backend compile/tests and frontend production build
+on every push and pull request (`.github/workflows/round2-ci.yml`).
+
+## Repository safety checklist
+
+Before publishing:
+
+- Confirm `.env` is ignored.
+- Commit `.env.example`, not `.env`.
+- Do not commit `__pycache__`, `.next`, `.vercel`, or `node_modules`.
+- Do not commit screenshots or recordings containing visible secrets.
+- Rotate any token that was accidentally shown during development.
