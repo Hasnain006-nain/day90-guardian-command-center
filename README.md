@@ -1,4 +1,4 @@
-# Day90 Guardian Command Center
+# GuardianOS Command Center
 
 Governed HR & People Ops AI employee for the Autopilot Asia Hackathon.
 
