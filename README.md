@@ -1,311 +1,375 @@
-# Day90 Guardian Command Center
+GuardianOS: AI Employee Command Center
 
-Governed HR & People Ops AI employee for the Autopilot Asia Hackathon.
+Governed AI Employee for People Operations
 
-Day90 Guardian helps People Ops teams catch onboarding, access, compliance, payroll, manager-follow-up, and engagement risks before they become retention problems. It is not just a dashboard: it is a governed command center with policy gates, human review queues, an audit trail, and live handoffs to Slack and Asana.
+GuardianOS is an autonomous AI employee that helps People Operations
+teams detect workforce risks, analyze operational signals, coordinate
+specialized AI operators, and execute safe actions with human approval.
 
-> **One AI employee, not five disconnected automations.** Day90 Guardian validates evidence, coordinates specialist operators, applies an explicit policy, and keeps a human accountable for any consequential action.
+GuardianOS is not a simple dashboard or chatbot. It is a governed AI
+operating system with:
 
-## What problem it solves
+-   Multi-agent orchestration
+-   Policy-based decision making
+-   Human-in-the-loop approval
+-   Explainable recommendations
+-   Audit trails
+-   Secure Slack and Asana workflows
 
-The first 90 days of employment are noisy. HR data is spread across onboarding tasks, access provisioning, compliance records, payroll checks, manager follow-ups, learning milestones, and engagement signals. Humans usually discover problems late because each system only shows one slice of the truth.
+  One AI employee, not five disconnected automations.
 
-Day90 Guardian combines those signals into one governed workflow:
+------------------------------------------------------------------------
 
-1. Validate whether the employee data is safe and complete enough to use.
-2. Reconcile onboarding tasks with access/provisioning evidence.
-3. Separate confidential engagement signals from normal reporting.
-4. Apply editable People Ops policies to route each case.
-5. Create safe human-review actions only when the case is allowed to leave the command center.
+Problem
 
-## Why this is different
+Modern organizations have employee information distributed across:
 
-Most HR dashboards report a problem after it has already been noticed. Day90 Guardian creates an accountable operating loop:
+-   Employee records
+-   Onboarding tasks
+-   Access provisioning
+-   Compliance systems
+-   Payroll workflows
+-   Manager follow-ups
+-   Learning milestones
+-   Engagement signals
 
-**evidence → specialist checks → policy decision → human approval → masked action → auditable outcome**
+Each system only shows part of the employee journey.
 
-That distinction matters for People Ops. A missing laptop can be remediated; a confidential disclosure must be protected; an incomplete manager relationship means the system should stop and ask for better data rather than make a confident-looking decision.
+GuardianOS creates a complete operational loop:
 
-## Core product surfaces
+Evidence → AI Analysis → Policy Decision → Human Approval → Safe Action
+→ Audit Trail
 
-- **Dashboard** — executive command view of cohort health, route counts, operator flow, integrations, and audit trail.
-- **Workbench** — human review queue for Amber, Red, Confidential, and Data Quality cases.
-- **AI Policies** — editable governance layer that determines how cases route.
-- **AI Insights** — generated operational patterns, bottlenecks, anomalies, and recommended actions.
-- **Data Manager** — transparent source registry showing data lineage, connected systems, source tables, and computed signals.
-- **AI Manager** — conversational control layer for asking about the system, policies, confidential handling, and operational status.
+------------------------------------------------------------------------
 
-## AI employee architecture
+AI Employee Architecture
 
-Day90 Guardian is modeled as one orchestrated AI employee made from specialized operators:
+GuardianOS is built as one AI employee composed of specialized
+operators.
 
-| Operator | Responsibility |
-| --- | --- |
-| HR Data Quality and Lifecycle Operator | Validates worker cohort, lifecycle stage, manager references, location, and source completeness before decisions run. |
-| Onboarding Task and Access Reconciliation Operator | Compares onboarding task status with laptop, badge, VPN, email, and system access evidence. |
-| Engagement and Confidentiality Guard Operator | Reads engagement/non-response signals and isolates confidential disclosures from normal reporting. |
-| Retention Risk and Policy Evaluation Operator | Applies Day90 policy rules and routes cases into Green, Amber, Red, Confidential, or Data Quality. |
-| Intervention Execution and Outcome Operator | Creates only safe or approved Slack/Asana interventions and records external proof. |
+    flowchart LR
 
-The backend exposes the orchestration through FastAPI endpoints; the frontend renders the command center in Next.js.
+    A["HR Data Sources<br/>Supabase + CSV"] --> B["AI Employee Orchestrator"]
 
-```mermaid
-flowchart LR
-  A["Supabase HR records\nCSV fallback"] --> B["Data Quality & Lifecycle"]
-  B --> C["Onboarding & Access\nparallel"]
-  B --> D["Engagement & Confidentiality\nparallel"]
-  C --> E["Evidence fan-in"]
-  D --> E
-  E --> F["Retention Risk & Policy"]
-  F -->|"Amber"| G["Human review + safe intervention"]
-  F -->|"Red / Confidential / Data Quality"| H["Restricted Workbench gate"]
-  G --> I["Masked Slack notice\nassigned Asana task"]
-  H --> J["Decision and audit trail"]
-  I --> J
-```
+    B --> C["Data Quality Operator"]
 
-The same coordination is visible in the saved Supervity workflow: two specialist branches run in parallel, merge at fan-in, then follow the policy-selected route.
+    B --> D["Onboarding & Access Operator"]
 
-## Data model
+    B --> E["Engagement & Confidentiality Operator"]
 
-The system computes signals from HR source tables including:
+    C --> F["Evidence Validation"]
 
-- Workers
-- Onboarding tasks
-- Provisioning/access records
-- Engagement records
-- Manager directory
-- Locations/entities
-- Compliance items
-- Payroll records
-- Learning milestones
-- Attrition history context
-- Cross-team dependencies
+    D --> F
 
-The app reports this as 11/11 operational HR tables loaded. The 17 cohort count
-is shown separately because it is derived from Workers, not a separate source
-table. The source workbook's Field Dictionary is treated as a semantic reference
-for the table fields, not as an operational table.
+    E --> F
 
-Primary source is Supabase when configured. The mounted CSV dataset is retained as a controlled local fallback.
+    F --> G["Risk & Policy Evaluation"]
 
-## Governance and privacy rules
+    G -->|Green| H["No Action"]
 
-Day90 Guardian intentionally avoids unsafe automation:
+    G -->|Amber| I["Human Review"]
 
-- Confidential pulse text is not displayed in dashboard, insights, Slack messages, or public Asana task descriptions.
-- Red and Confidential cases require human review before broad external action.
-- Unsafe joins, missing manager ownership, and chronology problems route to Data Quality instead of being auto-resolved.
-- Retention impact is framed as leading-risk reduction, not as a measured attrition outcome claim.
-- External Slack/Asana actions include masked case keys and safe summaries only.
+    G -->|Red / Confidential| J["Restricted Workbench"]
 
-| Route | What the system does | External visibility |
-| --- | --- | --- |
-| Green | Records a safe outcome; no intervention is needed. | None |
-| Amber | Presents a reviewer decision; an approval can create a masked Slack notification and assigned Asana task. | Safe, reviewable summary only |
-| Red | Keeps the case restricted; an approval can create the restricted HR Asana task. | Restricted Asana only — never broad Slack |
-| Confidential / Data Quality | Holds the case in the internal Workbench until a human resolves it. | No Slack or public Asana artifact |
+    I --> K["Approved Slack + Asana Action"]
 
-## Live integrations
+    J --> L["Audit Trail"]
 
-Configured integrations:
+    K --> L
 
-- Supabase — operational source record store
-- Supervity Auto — external AI/operator orchestration proof
-- Slack — masked human-review notification
-- Asana — assigned reviewer task with safe description
+    H --> L
 
-Secrets are stored in `.env` and must not be committed. Use `.env.example` as the safe template.
+------------------------------------------------------------------------
 
-## Hosted deployment
+AI Operators
 
-- Public command center UI: <https://day90-guardian-command-center-ui.vercel.app/>
-- Public backend health check: <https://day90-guardian-api-git-main-waseem-mushtaqs-projects.vercel.app/api/health>
-- Vercel backend project: `day90-guardian-api`
-- Vercel frontend project: `day90-guardian-command-center-ui`
-
-The hosted UI is intentionally protected with a demo access password because the
-Workbench can create real Slack and Asana review artifacts after a human
-approval. Share the demo password only through an approved private channel; do
-not commit it to this repository.
-
-## Local run
+  -----------------------------------------------------------------------
+  Operator                            Responsibility
+  ----------------------------------- -----------------------------------
+  HR Data Quality Operator            Validates employee records,
+                                      lifecycle stage, ownership, and
+                                      data completeness
 
-### Prerequisites
-
-- Docker Desktop
-- Git
-- PowerShell on Windows
+  Onboarding & Access Operator        Reconciles onboarding tasks with
+                                      system access evidence
 
-### Start services
+  Engagement & Confidentiality        Detects engagement signals while
+  Operator                            protecting confidential information
 
-```powershell
-cd C:\Users\kaout\Documents\Codex\day90-guardian-round2
-docker compose up --build -d
-```
-
-Open:
-
-- Frontend: <http://127.0.0.1:3001>
-- API docs: <http://127.0.0.1:8001/api/docs>
-- Health: <http://127.0.0.1:8001/api/health>
-
-### Restart after backend-only changes
-
-```powershell
-docker compose restart backend
-```
-
-### Run verification
-
-The backend test suite covers health/readiness, secret-safe integration status,
-route-aware Slack/Asana behavior, privacy gates, and idempotent approved actions.
-Run it inside the backend image so it uses the same dependencies as deployment:
-
-```powershell
-docker compose exec backend pytest -q
-```
-
-Or run the complete runtime checklist (health, secret-safe integrations,
-approval gating, route counts, frontend response, and container tests):
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\verify-round2.ps1
-```
-
-### Rebuild after frontend changes
-
-```powershell
-docker compose up -d --build frontend
-```
-
-## Important environment variables
-
-Copy `.env.example` to `.env`, then configure:
-
-```env
-NEXT_PUBLIC_API_URL=http://localhost:8001
-NEXTAUTH_URL=http://localhost:3001
-NEXTAUTH_SECRET=
-
-SUPABASE_URL=
-SUPABASE_SERVICE_ROLE_KEY=
-
-SUPERVITY_WORKFLOW_EXECUTE_URL=
-SUPERVITY_API_KEY=
-SUPERVITY_WORKFLOW_ID=019f7b16-6fc0-7000-923b-f6ebf9317c02
-SUPERVITY_OPERATOR_DATA_QUALITY_WORKFLOW_ID=019f7b16-a2c8-7000-9cda-fb456fe15674
-SUPERVITY_OPERATOR_ONBOARDING_WORKFLOW_ID=019f7b17-5cdd-7000-947b-b144827bade0
-SUPERVITY_OPERATOR_ENGAGEMENT_WORKFLOW_ID=019f7b17-221a-7000-a7d2-3c0a6980d1e7
-SUPERVITY_OPERATOR_RISK_POLICY_WORKFLOW_ID=019f7b16-fb46-7000-ac4b-452617d11737
-SUPERVITY_OPERATOR_INTERVENTION_WORKFLOW_ID=019f7b16-d067-7000-ade6-8bbb0c0d7149
-SUPERVITY_ACTIVE_ORG=
-SUPERVITY_RUN_MODE=dry_run
-SUPERVITY_SCOPE_TYPE=all
-SUPERVITY_SCOPE_VALUE=
-SUPERVITY_BATCH_ID=R2-BATCH-20260803
-SUPERVITY_SOURCE_BATCH_ID=R2-BATCH-20260803
-SUPERVITY_POLICY_PROFILE=hr-default
-SUPERVITY_POLICY_VERSION=1
-SUPERVITY_SLACK_CHANNEL_NAME=day90-test
-SUPERVITY_ASANA_PROJECT_NAME=D90TEST — Day90 Guardian
-SUPERVITY_ASANA_WORKSPACE_NAME=My Workspace
-# Keep false until the Auto workflow is confirmed approval-gated.
-DAY90_SUPERVITY_TRIGGER_ENABLED=false
-DAY90_SUPERVITY_POLICY_SNAPSHOT_INPUT_ENABLED=true
-DAY90_SUPERVITY_TIMEOUT_SECONDS=20
-
-SLACK_BOT_TOKEN=
-SLACK_CHANNEL_ID=
-
-ASANA_ACCESS_TOKEN=
-ASANA_PROJECT_GID=
-ASANA_ASSIGNEE_GID=             # optional default reviewer; otherwise the token owner is assigned
-ASANA_AMBER_ASSIGNEE_GID=       # optional HR Business Partner override
-ASANA_RED_ASSIGNEE_GID=         # optional HR Operations Lead override
-ASANA_AMBER_DUE_DAYS=1          # optional business-day deadline override
-ASANA_RED_DUE_DAYS=0            # optional business-day deadline override
-```
-
-For local Docker, the dataset is mounted to:
-
-```env
-DAY90_DATASET_DIR=/app/day90_dataset
-```
-
-### Production security requirements
-
-- Keep `AUTH_BYPASS=false` for staging and production. The backend also refuses
-  to activate the bypass when `APP_ENV=staging` or `APP_ENV=production`.
-- A Vercel deployment uses two projects: the FastAPI backend from repository
-  root and the Next.js frontend from `frontend`. Configure a shared
-  `INTERNAL_SERVICE_TOKEN` on both projects; the frontend proxy keeps it out
-  of browser code. Before sharing the hosted demo, enable
-  `DEMO_AUTH_REQUIRED=true` and set `DEMO_ACCESS_PASSWORD` and
-  `NEXTAUTH_SECRET` on the frontend project.
-- Compose defaults `APP_ENV` to `production`; local development must opt in with
-  `APP_ENV=development` and `AUTH_BYPASS=true` in the untracked `.env` file.
-- Store integration secrets only in the deployment secret manager. The
-  integration readiness endpoint returns `configured`/`missing` status and
-  never returns token fragments.
-- Use a dedicated restricted Asana project for Red cases. Confidential and
-  Data Quality routes remain internal Workbench gates and create no public
-  Slack/Asana artifact.
-- A Workbench approval is the only path that creates an approved external
-  action, and repeated approvals are idempotent.
-
-## Key API endpoints
-
-| Endpoint | Purpose |
-| --- | --- |
-| `GET /api/day90/dashboard` | Main command-center payload: metrics, routes, integrations, audit, operator status. |
-| `GET /api/day90/data-profile` | Source lineage, table counts, computed risk signals, and route counts. |
-| `GET /api/day90/workbench` | Human-review cases and safe evidence. |
-| `POST /api/day90/runs/trigger` | Starts the approval-gated Supervity Orchestrator workflow; external actions stay behind the Workbench approval gate. |
-| `POST /api/day90/operators/{operator_key}/trigger` | Lets AI Manager trigger or retrigger one Supervity Operator workflow by key (`data_quality`, `onboarding`, `engagement`, `risk_policy`, or `intervention`) and returns its receipt. |
-| `POST /api/day90/workbench/{case_id}/decision` | Records approve/modify/reject; only an approval creates route-aware masked actions. |
-| `GET /api/day90/integrations` | Integration readiness without exposing secrets. |
-| `GET /api/day90/policies` | Active Day90 policy rules. |
-| `GET /api/day90/insights` | Operational insights generated from the computed profile. |
-
-## Performance note
-
-The backend caches the computed Day90 profile in-process for one hour by default:
-
-```env
-DAY90_PROFILE_CACHE_TTL_SECONDS=3600
-```
-
-This keeps the local demo responsive while avoiding repeated full Supabase reads on every page navigation.
-
-## Live operating flow
-
-1. Open the Dashboard and review the live source, connected systems, operator flow, route counts, and audit trail.
-2. Open Data Manager to inspect source lineage, operational table coverage, and computed signals.
-3. Open Workbench and triage Amber, Red, Confidential, and Data Quality cases.
-4. Confirm that confidential cases remain masked and restricted.
-5. Trigger a Guardian Review.
-6. Approve an Amber case when a route-safe nudge is appropriate; the system records the audit entry and creates the approved Slack/Asana artifacts.
-7. Use AI Policies to adjust governed routing thresholds while keeping confidential routing fail-closed.
-8. Use AI Insights to review bottlenecks, recommendations, and operational risk patterns.
-
-The operating model is an end-to-end control loop: source records, specialist
-operator checks, policy decision, human gate, masked action receipt, and audit
-trail.
-
-For a pre-submission evidence checklist, see
-[`docs/round2-acceptance-checklist.md`](docs/round2-acceptance-checklist.md).
-GitHub Actions repeats the backend compile/tests and frontend production build
-on every push and pull request (`.github/workflows/round2-ci.yml`).
-
-## Repository safety checklist
-
-Before publishing:
-
-- Confirm `.env` is ignored.
-- Commit `.env.example`, not `.env`.
-- Do not commit `__pycache__`, `.next`, `.vercel`, or `node_modules`.
-- Do not commit screenshots or recordings containing visible secrets.
-- Rotate any token that was accidentally shown during development.
+  Risk & Policy Operator              Applies governance rules and
+                                      determines routing
 
+  Intervention Operator               Creates approved operational
+                                      actions and records outcomes
+  -----------------------------------------------------------------------
 
+------------------------------------------------------------------------
+
+System Architecture
+
+    flowchart TB
+
+    Frontend["Next.js Command Center"]
+
+    Backend["FastAPI Backend"]
+
+    Agents["AI Employee Orchestration Layer"]
+
+    Policy["Policy Engine"]
+
+    Database["Supabase"]
+
+    Fallback["CSV Dataset"]
+
+    Supervity["Supervity AI Workflow"]
+
+    Slack["Slack"]
+
+    Asana["Asana"]
+
+    Frontend --> Backend
+
+    Backend --> Agents
+
+    Database --> Agents
+
+    Fallback --> Agents
+
+    Agents --> Supervity
+
+    Agents --> Policy
+
+    Policy --> Backend
+
+    Backend --> Slack
+
+    Backend --> Asana
+
+------------------------------------------------------------------------
+
+Data Architecture
+
+    flowchart LR
+
+    A["HR Data Sources"]
+
+    B["Data Validation"]
+
+    C["AI Specialist Operators"]
+
+    D["Risk Calculation"]
+
+    E["Policy Engine"]
+
+    F["Human Approval"]
+
+    G["Operational Action"]
+
+    A --> B
+
+    B --> C
+
+    C --> D
+
+    D --> E
+
+    E --> F
+
+    F --> G
+
+Data sources include:
+
+-   Workers
+-   Onboarding tasks
+-   Provisioning records
+-   Engagement records
+-   Manager directory
+-   Locations
+-   Compliance items
+-   Payroll records
+-   Learning milestones
+-   Attrition context
+-   Cross-team dependencies
+
+------------------------------------------------------------------------
+
+Governance and Safety
+
+GuardianOS avoids unsafe automation.
+
+    flowchart LR
+
+    Case["Detected Case"]
+
+    Case --> Decision{"Risk Classification"}
+
+    Decision --> Green["Green<br/>No Action"]
+
+    Decision --> Amber["Amber<br/>Human Approval"]
+
+    Decision --> Red["Red<br/>Restricted Review"]
+
+    Decision --> Confidential["Confidential<br/>Internal Only"]
+
+    Decision --> Data["Data Quality<br/>Fix Required"]
+
+Rules:
+
+-   Confidential information remains protected
+-   Sensitive cases require human approval
+-   External actions require approval
+-   Decisions are recorded
+-   Unsafe data conditions stop automation
+
+------------------------------------------------------------------------
+
+Product Features
+
+Dashboard
+
+-   Workforce health
+-   Risk routes
+-   Operator status
+-   Integration status
+-   Audit history
+
+AI Workbench
+
+Human review center for:
+
+-   Amber cases
+-   Red cases
+-   Confidential cases
+-   Data quality issues
+
+AI Policies
+
+Controls:
+
+-   Risk thresholds
+-   Routing rules
+-   Approval requirements
+
+Data Manager
+
+Shows:
+
+-   Source lineage
+-   Connected systems
+-   Computed signals
+
+AI Manager
+
+Allows users to ask:
+
+-   Why is this employee at risk?
+-   Which team has onboarding problems?
+-   What action should happen next?
+-   What policies are active?
+
+------------------------------------------------------------------------
+
+Integration Architecture
+
+    flowchart LR
+
+    GuardianOS["GuardianOS"]
+
+    GuardianOS --> Supabase["Supabase"]
+
+    GuardianOS --> Supervity["Supervity Auto"]
+
+    GuardianOS --> Slack["Slack"]
+
+    GuardianOS --> Asana["Asana"]
+
+------------------------------------------------------------------------
+
+API Architecture
+
+  Endpoint                                  Purpose
+  ----------------------------------------- ---------------------------
+  GET /api/day90/dashboard                  Command center metrics
+  GET /api/day90/data-profile               Data lineage and signals
+  GET /api/day90/workbench                  Human review queue
+  POST /api/day90/runs/trigger              Start AI workflow
+  POST /api/day90/operators/{key}/trigger   Trigger specific operator
+  POST /api/day90/workbench/{id}/decision   Approve or reject action
+
+------------------------------------------------------------------------
+
+Technology Stack
+
+Frontend: - Next.js - TypeScript - React
+
+Backend: - FastAPI - Python
+
+AI: - Multi-agent orchestration - LLM reasoning - Policy-based
+workflows - Human-in-the-loop AI
+
+Infrastructure: - Docker - Supabase - Vercel
+
+------------------------------------------------------------------------
+
+Deployment
+
+Frontend:
+
+    Next.js
+       |
+       v
+    Vercel
+
+Backend:
+
+    FastAPI
+       |
+       v
+    Vercel
+
+------------------------------------------------------------------------
+
+Local Development
+
+Requirements:
+
+-   Docker Desktop
+-   Git
+-   Node.js
+-   Python
+
+Run:
+
+    docker compose up --build -d
+
+Frontend:
+
+    http://127.0.0.1:3001
+
+API:
+
+    http://127.0.0.1:8001/api/docs
+
+------------------------------------------------------------------------
+
+Security
+
+Production requirements:
+
+-   Store secrets only in environment variables
+-   Never commit .env files
+-   Keep approval gates before external actions
+-   Protect confidential cases
+-   Maintain complete audit records
+
+------------------------------------------------------------------------
+
+Vision
+
+GuardianOS explores how AI employees can become reliable operational
+teammates.
+
+The goal is not replacing People Ops teams.
+
+The goal is building AI systems that understand context, follow rules,
+and help humans make better decisions.
