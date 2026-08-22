@@ -1,350 +1,341 @@
-🚀 GuardianOS: AI Employee Command Center
+Day90 Guardian Command Center
 
-A Governed Multi-Agent AI Employee for People Operations
+Governed AI Employee for People Operations
 
-Detect risks. Understand context. Coordinate AI operators. Take safe
-action with human control.
+Day90 Guardian helps People Ops teams identify onboarding, access,
+compliance, payroll, manager-follow-up, and engagement risks before they
+become operational problems.
 
-------------------------------------------------------------------------
+It is not just a dashboard. It is a governed AI command center with:
 
-🧠 What is GuardianOS?
+-   Policy gates
+-   Human review queues
+-   Audit trails
+-   AI specialist operators
+-   Secure Slack and Asana workflows
 
-GuardianOS is not another HR dashboard and not another chatbot.
+  One AI employee, not five disconnected automations.
 
-It is a governed AI employee that continuously analyzes People
-Operations workflows, detects hidden risks, coordinates specialized AI
-operators, and prepares safe interventions with human approval.
-
-GuardianOS creates a complete operational intelligence loop:
-
-                     Evidence
-                        |
-                        v
-              AI Specialist Operators
-                        |
-                        v
-                Policy Evaluation
-                        |
-                        v
-              Human Approval Layer
-                        |
-                        v
-              Safe Operational Action
-                        |
-                        v
-                  Audit Trail
+  Day90 Guardian validates evidence, coordinates specialist operators,
+  applies explicit policies, and keeps humans accountable for important
+  decisions.
 
 ------------------------------------------------------------------------
 
-🎯 The Problem
+What Problem It Solves
 
-Modern organizations have employee information scattered across multiple
-systems.
+The first 90 days of employment involve many connected processes:
 
-  System       Hidden Problem
-  ------------ ------------------------------------
-  Onboarding   Employees blocked by missing tasks
-  IT Access    Delayed laptop, VPN, email access
-  Compliance   Missing mandatory requirements
-  Payroll      Incorrect or incomplete records
-  Managers     Missed follow-ups
-  Engagement   Early warning signals ignored
+-   Employee onboarding
+-   Access provisioning
+-   Compliance requirements
+-   Payroll checks
+-   Manager follow-ups
+-   Learning milestones
+-   Engagement signals
 
-The problem is simple:
+These signals are usually distributed across different systems.
 
-  Companies have data everywhere, but no intelligent system connecting
-  the signals together.
+Humans often discover problems too late because each system only shows
+one part of the employee journey.
 
-------------------------------------------------------------------------
+Day90 Guardian creates one governed workflow:
 
-💡 The GuardianOS Solution
-
-GuardianOS acts as an AI teammate for People Operations.
-
-It combines:
-
-✅ Data validation
-✅ Multi-agent reasoning
-✅ Policy-based decisions
-✅ Human approval workflows
-✅ Safe external actions
-✅ Complete audit history
+1.  Validate whether employee data is complete and reliable.
+2.  Reconcile onboarding tasks with access evidence.
+3.  Protect confidential engagement information.
+4.  Apply People Ops policies.
+5.  Route cases through human review.
+6.  Create safe operational actions.
 
 ------------------------------------------------------------------------
 
-🏗️ AI Employee Architecture
+Why Day90 Guardian Is Different
 
-GuardianOS uses one AI employee composed of specialized operators.
+Most operational dashboards only report problems.
 
-    flowchart LR
+Day90 Guardian creates an accountable AI operating loop:
 
-    A["HR Data Sources<br/>Supabase + CSV"] --> B["AI Employee Orchestrator"]
+    Evidence
+        ↓
+    Specialist AI Operators
+        ↓
+    Policy Decision
+        ↓
+    Human Approval
+        ↓
+    Safe Action
+        ↓
+    Audit Trail
 
-    B --> C["Data Quality Operator"]
+The system does not blindly automate sensitive decisions.
 
-    B --> D["Onboarding & Access Operator"]
+Examples:
 
-    B --> E["Engagement & Confidentiality Operator"]
-
-    C --> F["Evidence Validation"]
-    D --> F
-    E --> F
-
-    F --> G["Risk & Policy Engine"]
-
-    G -->|Green| H["No Action"]
-
-    G -->|Amber| I["Human Review"]
-
-    G -->|Red / Confidential| J["Restricted Workbench"]
-
-    I --> K["Approved Slack + Asana Action"]
-
-    J --> L["Audit Trail"]
-
-    K --> L
-    H --> L
+  Situation                       Guardian Behavior
+  ------------------------------- -----------------------------------
+  Missing laptop access           Creates safe remediation workflow
+  Confidential employee concern   Keeps information restricted
+  Missing ownership data          Stops and requests correction
+  Operational delay               Routes to the correct reviewer
 
 ------------------------------------------------------------------------
 
-🤖 AI Operator System
+Core Product Surfaces
 
-  -----------------------------------------------------------------------
-  AI Operator                         Responsibility
-  ----------------------------------- -----------------------------------
-  HR Data Quality Operator            Validates employee records,
-                                      lifecycle stages, ownership, and
-                                      data completeness
+Dashboard
 
-  Onboarding & Access Operator        Checks onboarding progress against
-                                      access evidence
+Executive command view showing:
 
-  Engagement & Confidentiality        Detects engagement risks while
-  Operator                            protecting sensitive information
+-   Workforce health
+-   Risk routes
+-   Operator activity
+-   Integrations
+-   Audit history
 
-  Risk & Policy Operator              Applies governance rules and
-                                      determines case routing
+Workbench
 
-  Intervention Operator               Creates approved actions and
-                                      records outcomes
-  -----------------------------------------------------------------------
+Human review environment for:
 
-------------------------------------------------------------------------
+-   Amber cases
+-   Red cases
+-   Confidential cases
+-   Data quality issues
 
-⚙️ System Architecture
+AI Policies
 
-    flowchart TB
+Governance layer controlling:
 
-    Frontend["Next.js Command Center"]
+-   Routing rules
+-   Risk thresholds
+-   Approval requirements
 
-    Backend["FastAPI Backend"]
-
-    AI["AI Employee Layer"]
-
-    Policy["Policy Engine"]
-
-    Database["Supabase Database"]
-
-    Workflow["Supervity AI Workflow"]
-
-    Slack["Slack"]
-
-    Asana["Asana"]
-
-    Frontend --> Backend
-
-    Backend --> AI
-
-    Database --> AI
-
-    AI --> Workflow
-
-    AI --> Policy
-
-    Policy --> Backend
-
-    Backend --> Slack
-
-    Backend --> Asana
-
-------------------------------------------------------------------------
-
-🖥️ Product Experience
-
-📊 Command Dashboard
+AI Insights
 
 Provides:
 
-  Feature              Purpose
-  -------------------- --------------------------------
-  Workforce Overview   Understand operational health
-  Risk Routes          View Green / Amber / Red cases
-  Operator Status      Monitor AI activity
-  Audit Timeline       Track decisions
+-   Operational patterns
+-   Bottlenecks
+-   Anomalies
+-   Recommended actions
 
-------------------------------------------------------------------------
+Data Manager
 
-🛠️ AI Workbench
+Provides transparency into:
 
-A human decision center for:
-
--   🟡 Amber cases
--   🔴 Red cases
--   🔒 Confidential cases
--   ⚠️ Data quality issues
-
-Humans remain responsible for important decisions.
-
-------------------------------------------------------------------------
-
-📜 AI Policy Engine
-
-Controls:
-
-  Policy           Example
-  ---------------- ---------------------------------------
-  Risk Threshold   When escalation happens
-  Approval Rules   When humans must review
-  Privacy Rules    What information can leave the system
-
-------------------------------------------------------------------------
-
-🔎 Data Manager
-
-Provides visibility into:
-
--   Data sources
+-   Source systems
 -   Data lineage
 -   Computed signals
--   Operational records
+
+AI Manager
+
+Conversational control layer for understanding:
+
+-   Current risks
+-   Policies
+-   Operational status
+-   Recommended actions
 
 ------------------------------------------------------------------------
 
-💬 AI Manager
+AI Employee Architecture
 
-Ask questions like:
+Day90 Guardian is modeled as one orchestrated AI employee made from
+specialized operators.
 
-  “Why is this employee considered high risk?”
+AI Operators
 
-  “Which department has onboarding problems?”
+  -----------------------------------------------------------------------
+  Operator                            Responsibility
+  ----------------------------------- -----------------------------------
+  HR Data Quality and Lifecycle       Validates worker records, lifecycle
+  Operator                            stages, manager references,
+                                      locations, and data completeness
 
-  “What actions should happen today?”
+  Onboarding Task and Access          Compares onboarding status with
+  Reconciliation Operator             laptop, badge, VPN, email, and
+                                      system access evidence
+
+  Engagement and Confidentiality      Detects engagement signals while
+  Guard Operator                      protecting confidential information
+
+  Retention Risk and Policy           Applies policies and routes cases
+  Evaluation Operator                 into Green, Amber, Red,
+                                      Confidential, or Data Quality
+
+  Intervention Execution and Outcome  Creates approved Slack/Asana
+  Operator                            interventions and records outcomes
+  -----------------------------------------------------------------------
 
 ------------------------------------------------------------------------
 
-🔄 Operational Flow
+Architecture Flow
 
     flowchart LR
 
-    A["Employee Data"]
+    A["Supabase HR records<br/>CSV fallback"] --> B["Data Quality & Lifecycle"]
 
-    B["Validation"]
+    B --> C["Onboarding & Access<br/>parallel"]
 
-    C["AI Analysis"]
+    B --> D["Engagement & Confidentiality<br/>parallel"]
 
-    D["Risk Scoring"]
+    C --> E["Evidence fan-in"]
 
-    E["Policy Decision"]
-
-    F["Human Approval"]
-
-    G["Action"]
-
-    A --> B
-    B --> C
-    C --> D
     D --> E
-    E --> F
-    F --> G
+
+    E --> F["Retention Risk & Policy"]
+
+    F -->|"Amber"| G["Human review + safe intervention"]
+
+    F -->|"Red / Confidential / Data Quality"| H["Restricted Workbench gate"]
+
+    G --> I["Masked Slack notice<br/>Assigned Asana task"]
+
+    H --> J["Decision and audit trail"]
+
+    I --> J
 
 ------------------------------------------------------------------------
 
-🔐 Governance & Safety
+Data Model
 
-GuardianOS is designed for responsible AI operations.
+Day90 Guardian computes signals from:
 
-  Risk Type         System Behavior
-  ----------------- -------------------------
-  🟢 Green          Record outcome
-  🟡 Amber          Human approval required
-  🔴 Red            Restricted review
-  🔒 Confidential   Internal only
-  ⚠️ Data Quality   Fix before decision
+  Data Source               Purpose
+  ------------------------- ---------------------------
+  Workers                   Employee lifecycle
+  Onboarding Tasks          Progress tracking
+  Provisioning Records      Access verification
+  Engagement Records        Operational signals
+  Manager Directory         Ownership validation
+  Locations                 Organization context
+  Compliance Items          Requirement tracking
+  Payroll Records           Process validation
+  Learning Milestones       Development tracking
+  Attrition Context         Risk analysis
+  Cross-team Dependencies   Operational relationships
 
-------------------------------------------------------------------------
+Primary source:
 
-🔌 Integrations
+    Supabase
 
-    flowchart LR
+Controlled fallback:
 
-    GuardianOS["GuardianOS"]
-
-    GuardianOS --> Supabase["Supabase"]
-
-    GuardianOS --> Supervity["Supervity Auto"]
-
-    GuardianOS --> Slack["Slack"]
-
-    GuardianOS --> Asana["Asana"]
+    CSV Dataset
 
 ------------------------------------------------------------------------
 
-🧬 Data Architecture
+Governance and Privacy
 
-GuardianOS processes:
+Day90 Guardian intentionally avoids unsafe automation.
 
-  Data Source            Purpose
-  ---------------------- ----------------------
-  Workers                Employee lifecycle
-  Onboarding Tasks       Progress tracking
-  Provisioning Records   Access verification
-  Engagement Records     Operational signals
-  Manager Directory      Ownership validation
-  Compliance Items       Requirement tracking
-  Payroll Records        Process validation
-  Learning Milestones    Development tracking
+Safety Rules
 
-------------------------------------------------------------------------
+-   Confidential information is protected.
+-   Red and confidential cases require human review.
+-   Unsafe data joins stop automation.
+-   External actions only happen after approval.
+-   Decisions are recorded.
 
-🛠️ Technology Stack
+Risk Routing
 
-  Layer             Technology
-  ----------------- -------------------------------------------
-  Frontend          Next.js + TypeScript
-  Backend           FastAPI + Python
-  AI                Multi-Agent Orchestration + LLM Reasoning
-  Database          Supabase
-  Workflow Engine   Supervity Auto
-  Deployment        Vercel + Docker
+  Route          System Behavior                External Visibility
+  -------------- ------------------------------ ------------------------
+  Green          Safe outcome recorded          None
+  Amber          Human approval before action   Safe summary only
+  Red            Restricted review              Restricted access only
+  Confidential   Internal handling              No external action
+  Data Quality   Fix data before decision       No action
 
 ------------------------------------------------------------------------
 
-🌐 Live Demo
+Integrations
 
-Frontend
+Configured integrations:
 
-https://day90-guardian-command-center-ui.vercel.app/
+  Integration      Purpose
+  ---------------- ---------------------------
+  Supabase         Operational data source
+  Supervity Auto   AI workflow orchestration
+  Slack            Masked notifications
+  Asana            Reviewer tasks
+
+------------------------------------------------------------------------
+
+Technical Architecture
 
 Backend
 
-https://day90-guardian-api-git-main-waseem-mushtaqs-projects.vercel.app/api/health
+-   FastAPI
+-   Python
+
+Frontend
+
+-   Next.js
+-   TypeScript
+
+AI Layer
+
+-   Multi-agent orchestration
+-   LLM reasoning
+-   Policy-based workflows
+-   Human-in-the-loop AI
+
+Infrastructure
+
+-   Docker
+-   Supabase
+-   Vercel
 
 ------------------------------------------------------------------------
 
-🚀 Running Locally
+API Endpoints
 
-Requirements
+  Endpoint                                  Purpose
+  ----------------------------------------- ----------------------------
+  GET /api/day90/dashboard                  Main command center data
+  GET /api/day90/data-profile               Source lineage and signals
+  GET /api/day90/workbench                  Human review cases
+  POST /api/day90/runs/trigger              Start AI workflow
+  POST /api/day90/operators/{key}/trigger   Trigger operator
+  POST /api/day90/workbench/{id}/decision   Approve or reject action
+  GET /api/day90/integrations               Integration status
+  GET /api/day90/policies                   Active policies
+
+------------------------------------------------------------------------
+
+Deployment
+
+Frontend:
+
+    Next.js
+       |
+       v
+    Vercel
+
+Backend:
+
+    FastAPI
+       |
+       v
+    Vercel
+
+------------------------------------------------------------------------
+
+Local Development
+
+Requirements:
 
 -   Docker Desktop
 -   Git
 -   Node.js
 -   Python
 
-Start
+Run:
 
     docker compose up --build -d
 
-Open
+Open:
 
 Frontend:
 
@@ -356,22 +347,24 @@ API:
 
 ------------------------------------------------------------------------
 
-🔮 Vision
+Security
 
-GuardianOS explores the future of AI employees.
+Production requirements:
 
-The goal is not replacing People Operations teams.
-
-The goal is building AI teammates that:
-
--   understand context
--   follow governance rules
--   explain decisions
--   help humans act faster
+-   Keep secrets in environment variables.
+-   Never commit .env.
+-   Use approval gates before external actions.
+-   Protect confidential cases.
+-   Maintain audit history.
 
 ------------------------------------------------------------------------
 
-⭐ Built for the AI Builders Hackathon
+Vision
 
-GuardianOS demonstrates how autonomous AI agents can work inside real
-operational workflows while keeping humans in control.
+Day90 Guardian explores how AI employees can become reliable operational
+teammates.
+
+The goal is not replacing People Ops teams.
+
+The goal is building AI systems that understand context, follow rules,
+explain decisions, and help humans make better decisions.
