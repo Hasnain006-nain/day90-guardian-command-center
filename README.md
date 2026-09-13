@@ -266,10 +266,7 @@ The operating model is an end-to-end control loop: source records, specialist
 operator checks, policy decision, human gate, masked action receipt, and audit
 trail.
 
-For a pre-submission evidence checklist, see
-[`docs/round2-acceptance-checklist.md`](docs/round2-acceptance-checklist.md).
-GitHub Actions repeats the backend compile/tests and frontend production build
-on every push and pull request (`.github/workflows/round2-ci.yml`).
+
 
 ## Repository safety checklist
 
