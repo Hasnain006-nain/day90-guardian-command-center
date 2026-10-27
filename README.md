@@ -448,10 +448,9 @@ day90-guardian-command-center/
 
 ## 🏆 Hackathon Submission Details
 
-* **Event**: AutoPilot Hackathon — Round 2
 * **Submission Track**: Human-in-the-Loop AI Command Center & AI Employee
 * **Orchestration Platform**: Built on **[auto.supervity.ai](https://auto.supervity.ai)**
-* **Team**: Hasnain Haider & Team Zero
+* **Team**: Team_Zero
 * **License**: Released under the [MIT License](LICENSE)
 
 ---
